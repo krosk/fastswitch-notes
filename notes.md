@@ -43,7 +43,8 @@ Related works
 
 Miscellaneous
 > What about privacy?
-
+> problem of power off, question unanswered
+> wakelocks, why it is limiting
 
 
 ### Section 1 Introduction
@@ -80,16 +81,16 @@ While hardware devices are under the control of the _running_ instance, RAM and 
 
 
 #### Sleeping state
-We are using the set of suspend and resume operations supported by Linux (referred as _suspend-to-RAM_ in Linux terminology) to put an instance into a _sleeping_ state. It ideally corresponds to a very low power state where only RAM remains powered on. Platforms with aggressive power management policy will, during suspend operations, save most if not all devices state and CPU context in RAM and power them off (or put them in a low power state), while the resume operations will power them on and restore their state. 
+We are using the set of suspend and resume operations supported by Linux (referred as _suspend-to-RAM_ in Linux terminology) to put an instance into a _sleeping_ state. It ideally corresponds to a very low power state where only RAM remains powered on. Platforms with aggressive power management policy will, during suspend operations, save most if not all devices state and CPU context in RAM and power them off (or put them in a low power state), while the resume operations will power them on and restore their state.  
 The platform, on an external event triggered by user interaction or a hardware device, can resume from a suspended state by retrieving necessary data from the RAM, and re-initializing CPU and device state afterwards. Suspend and resume operations are a very common power management feature found in mobile devices, where energy saving is a critical factor; most hardware platforms are therefore ready to support Fastswitch.
 
 
 #### Switching
 The core function of Fastswitch is the ability to switch from one instance to another. In essence, the idea is simple: we use the suspend operations on the _running_ instance, and then use the resume operations on any _sleeping_ instance we want to bring forward. However, resuming an instance can be done only under two conditions:
 
-- During a switch, the control over hardware devices is expected to be handed from the _running_ instance to the _sleeping_ instance we want to switch to. This means the _running_ instance must set the devices in a state where the _sleeping_ instance can recover from, that is, the state the devices were left when the _sleeping_ instance previously suspended. Instances do not necessarily stem from the same Linux-based OS, nor must they be using the same kernel; as long as involved instances set devices to a compatible state (the simplest state being powered off), switching is possible. _TODO to speed things up, we may not need to suspend everything, actually_
+-   During a switch, the control over hardware devices is expected to be handed from the _running_ instance to the _sleeping_ instance we want to switch to. This means the _running_ instance must set the devices in a state where the _sleeping_ instance can recover from, that is, the state the devices were left when the _sleeping_ instance previously suspended. Instances do not necessarily stem from the same Linux-based OS, nor must they be using the same kernel; as long as involved instances set devices to a compatible state (the simplest state being powered off), switching is possible. _TODO to speed things up, we may not need to suspend everything, actually_
 
-- A combination of (memory mapped) registers must be set with the correct values, i.e. the values that were written when the instance went to sleep. Those registers are platform-dependant, and may include for example the physical address to assign to the program counter once the platform wakes up from suspend, or the physical addresses of MMU tables (TODO add more relevant examples). Each instance is very likely to have different values for some of those registers; if we were to resume an instance with incoherent values, the resume operation would fail, and result in exceptions, crash, memory corruption, or unpredictable effects. We choose to call those registers _mandatory resume registers_ in the next part.
+-   A combination of (memory mapped) registers must be set with the correct values, i.e. the values that were written when the instance went to sleep. Those registers are platform-dependant, and may include for example the physical address to assign to the program counter once the platform wakes up from suspend, or the physical addresses of MMU tables (TODO add more relevant examples). Each instance is very likely to have different values for some of those registers; if we were to resume an instance with incoherent values, the resume operation would fail, and result in exceptions, crash, memory corruption, or unpredictable effects. We choose to call those registers _mandatory resume registers_ in the next part.
 
 As an implementation detail, an instance at boot will reserve a chunk of memory for its own usage: this chunk, referred next as _instance page_, is unique to this instance and is valid as long as the instance is loaded in memory. The _instance page_ will hold the necessary data and parameters regarding this instance.
 
@@ -128,11 +129,19 @@ This process results in the former _running_ instance becoming a _sleeping_ inst
 
 
 ### Section 3 Memory sharing
-To allow flexibility in the amount of memory available for each instance, we propose to use the _Memory hotplug_ feature of Linux.
+On our model, the physical memory is shared between all running instances. Hosting many OS on physical memory poses a challenge on two levels:
+*   We must ensure that each OS respects its boundaries, and does not tamper with others OS.
+*   Physical memory becomes the limiting resource, and needs to be cleverly managed.  
+Dividing the physical memory once and for all into two or more chunks and assigning beforehand each chunk to one potential instance, is an easy but not ideal solution. This puts a lot of constraints: 
+*   An chunk remains empty until an instance is loaded there; in the case only one instance is used, all other chunks are wasted memory.
+*   The memory layout is fixed, and may not conform to the target OS we want to load.
+*   One instance has only as much memory as the chunk hosting it. Even if other instances have free and unused memory, a demanding instance can not tap in this pool.  
+Therefore, the memory layout needs to be flexible, and memory must be available on demand. Memory allocated to each instance should be able to change at all times.
 
-This feature has been designed with two goals in mind:
-1.  Changing the amount of available memory in a system.
-2.  Allow the partial replacement of failing memory hardware without shutting down the machine. This is primarily targeted at data centers and servers, where downtime may have severe implications and should be avoided if possible.
+We propose to use the _Memory hotplug_ feature of Linux. This feature has been designed with two goals in mind:
+1.  To change the amount of available memory in a system dynamically.
+2.  To allow the partial replacement of failing memory hardware without shutting down the machine.  
+This is primarily targeted at data centers and servers, where downtime may have severe implications and should be avoided if possible.
 
 We leverage its capability to free memory for a new instance, or exchange memory between running instances.
 
@@ -185,7 +194,57 @@ On Linux-based OS, the whole procedure is guaranteed to not touch to sections ow
 #### Section transfer
 _Memory hotplug_ allow us to dynamically tailor the amount of memory available to each instance. Consider the following case: the _running_ instance has not enough memory to run a specific application. To solve this memory shortage would require setting online a few offline sections. If no offline sections are available (e.g. all offline sections belongs to other _sleeping_ instances), Fastswitch allows an instance to request sections to other instances. 
 
-The procedure goes like this: the _running instance_ issues a memory section request, indicating the number of sections it would like. At the next opportunity to suspend, the _running_ instance will execute suspend operations, and the first _sleeping_ instance will resume. Upon resuming, it will try to set offline any available sections (i.e. belonging to its movable zone) then suspend itself. If the number of successfully freed sections does not reach the requested number, another _sleeping_ instance is called, and will attempt to free more sections. This procedure continues until he requested number of sections have been freed, or all _sleeping_ instances have tried to free section. Regardless of the outcome, the requesting instance resumes at last, and claims the ownership of any freed section.
+The procedure goes like this: the _running_ instance issues a memory section request, indicating the number of sections it would like. At the next opportunity to suspend, the _running_ instance will execute suspend operations, and the first _sleeping_ instance will resume. Upon resuming, it will try to set offline any available sections (i.e. belonging to its movable zone) then suspend itself. If the number of successfully freed sections does not reach the requested number, another _sleeping_ instance is called, and will attempt to free more sections. This procedure continues until he requested number of sections have been freed, or all _sleeping_ instances have tried to free sections. Regardless of the outcome, the requesting instance resumes at last, and claims the ownership of any freed section.
+
+
+
+### Section 4 Evaluation and limitations
+Our prototype of Fastswitch has been implemented on a Galaxy Nexus smartphone. The ARM-based dual core smartphone packages (__TODO look for a better word__) the TI-manufactured OMAP4460 chip, and includes a variety of devices such as screen, radio, wifi, bluetooth, camera. On the software side, the Galaxy Nexus supports natively the Android OS from the version 4.0 onwards. The first stage and second stage boot loaders are proprietary, and can not be extracted, nor edited.  
+
+Due to the scarcity of the available operating systems for the Galaxy Nexus, we implemented Fastswitch on Android 4.0.4 based on Linux 3.0.8, and on Android 4.1.1 based on Linux 3.0.31.  
+No modifications were done on the bootloader level.  
+About 1500 lines of code have been added to the Linux kernel: about 100 lignes of code are platform dependant, among 500 lines of code are architecture dependant. (__TODO make a proper survey__). Several features, namely the _Sparse memory model_, were not available on ARM architecture (or on this version of the kernel) and were ported from other architecture or future versions of the kernel.
+We modified no drivers, as we hoped to make this functional with the least modifications possible.
+
+To control Fastswitch, we implemented a debugfs based interface, accessible from any user. Simple shell scripts can control the various operations, which include:
+*   Free and reserve a number of sections, starting from an address
+*   Load a file to a location
+*   Boot a new instance
+*   Switch to a _sleeping_ instance
+*   Request a number of sections
+This set of operations suffices to accomplish the features intended for Fastswitch. 
+
+
+The evaluation criteria include:
+*   The ability to host many OS
+*   How fast we can switch between instances
+*   If we can retain the full functionality of each instance
+*   The performance overhead
+
+
+#### Hosting many OS
+Our implementation platform has 1Gb of RAM, with about one quarter reserved for devices. The memory requirement of Android 4.0 is big (__add a source?__), therefore we can host at most two instances, with enough memory for each instance to run a few apps. The _initial_ instance will have the full memory at its disposition on boot, so there is no differences with a regular mobile device. The _initial_ instance is able to make room for a second instance, load and boot it. Boot time of a secondary instance is the same as a regular boot. And once booted, it is possible to switch from one instance to the other (see below). It is also possible for an instance to request a few sections from the other instance.
+
+The only lacking function is how to close an instance. (__TODO bug here, can't even power off the smartphone__)
+
+#### Switching instance
+We use the regular suspend and resume operations for Fastswitch. There are two implications:
+1.  All suspend and resume callbacks are called each time we want to switch: the speed of the switching relies on the speed of the callbacks. For reliability reasons, we undergo the whole suspend and resume process, to make sure every device is correctly suspended.
+    The time elapsed during a switching operation, on the worst case, is about 1.5 seconds (__TODO check again__).  
+    Optimizations can be made by hand picking which device we need to suspend. We can therefore leave the other untouched, and save time. Involved instances still need to coordinate how they set the device states (__TODO look for examples__).
+
+2.  The switching happens at the next opportunity to suspend. On Android, the suspend and resume framework has been overhauled, so suspend orders do not happen on demand, but in an opportunistic way: as soon as the system has nothing to do, a suspend request is issued. To indicate that some work is undergoing and must not be interrupted by a suspend request, Android introduced the _wakelock_ feature. A _wakelock_ is a simple two-state lock, and any task or user can request one or many locks. The system can suspend only when all _wakelocks_ are unlocked (__TODO look for the proper term__). The _wakelock_ feature imposes us to wait for the next opportunity to suspend. This may cause some delay after the switching request has been issued. Moreover, if an app holds a wakelock, it becomes impossible to switch instance. 
+    A possible optimization would be to skip wakelocks altogether when we issue a switching request. We implemented this, but the switching becomes less reliable as some tasks are not meant to be interrupted (especially when devices like audio or wifi are being used). While the tasks correctly suspends and resumes, the device state may become inconsistent. For example, during normal operation, audio is always set off by Android before calling the suspend operations. Therefore there is no need of a full flegded suspend callback inside the kernel to save the audio state, and switching instances works well. However, when skipping wakelocks, audio is not set off before suspend callbakcs are called, and will not work properly after the target instance resumes.
+
+#### Functionality
+Each instance retains natively the full capability of the hardware: for example, apps run at native speed, each instance can use graphic acceleration (__maybe test with a benchmark?__), receive and make calls. Switching instance does not affect the functionality of devices (save a few exceptions).  
+
+The exceptions are devices that are not powered off during the suspend operation: 
+*   Wifi: The wifi device can be either disabled during the suspend operations, or maintained powered. The fact that this device is not necessarily powered off may cause conflicts when switching instances. For example, instance A has wifi opened, but instance B has wifi disabled. We switch from instance A to instance B. Since instance B expects the wifi to be disabled, it will not control execute its resume callback. However, an attempt to enable wifi on instance B will fail, since the wifi device is at an unexpected state. If wifi is manually disabled on instance A before the switching, then the instance B can enable the wifi. As long as both instances involved in the switching have coordinated states for their devices, the device can be correctly used. (__TODO test with two systems wifi enabled__).
+*   Camera: The camera can be used by only one instance. It seems that it is tied to one system. (__TODO to retest__)
+
+#### Performance
+There is no noticeable performance overhead. The only change is the performance overhead brought by the necessity for the system to manage programs with less RAM, and the _Sparse memory model_ overhead over the _Flat memory model_ (__look for a study__).
 
 
 
