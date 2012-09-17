@@ -96,12 +96,16 @@ As an implementation detail, an instance at boot will reserve a chunk of memory 
 
 
 Switching instance involves the following steps:
+
 1.  On boot, we register two critical pieces of information into the _instance page_: the physical addresses of _mandatory resume registers_, and the physical address of the first resume routine (i.e. the first kernel code instruction that the CPU executes once the platform wakes up).
+
 2.  A _running_ instance initiates a switch request, and indicates which _sleeping_ instance the user want to switch to. At the next opportunity to suspend, the OS will execute suspend operations, and enter a low power state.
+
 3.  An event will wake up the platform. At this stage, ROM code internal to the platform may perform initialization routines to properly wake up the platform. As soon as the platform exits the low power state and jumps to the _running_ instance _resume routine_:
     -   We save the content of the _mandatory resume registers_ into the _running instance page_
     -   We load the content of the _mandatory resume registers_ from the _sleeping instance page_
     -   We jump to the _sleeping_ instance resume routine
+
 4.  At this point, we have prepared the platform so the _sleeping_ instance can resume properly. The resume operations of the _sleeping_ instance can proceed.
 
 This process results in the _running_ instance becoming a _sleeping_ instance, and the target _sleeping_ instance becoming the _running_ instance.
@@ -118,10 +122,14 @@ The _initial_ instance refers to the OS loaded by the boot loader on normal oper
 
 
 The process involves several steps:
+
 1.  The _running_ instance initiates a boot request: Fastswitch loads into an arbitrary memory location the necessary files and data to boot the target instance, just like a boot loader would have done. The target location must be unused by the _running_ instance.
+
 2.  At the next opportunity to suspend, the OS will execute suspend operations. The _running_ instance becomes a _sleeping_ instance. Once the devices have their state and context saved, we initiate a warm-reset order directly to the CPU. This is the way we employ to jump back to the boot loader. We assume that the boot loader will not erase or clean the whole RAM.
+
 3.  Once reset, the platform will execute ROM code and boot loader code. Both codes will properly initialize the devices so a fresh OS can boot. The boot loader will also load several files into memory, in particular the kernel compressed image of the _initial_ instance, then jump to its address.
     *   Since the boot loader overwrites several memory ranges by loading files and data, we have to make sure to forbid any instance to use those locations.
+
 4.  On normal operation, the decompressor code placed at the head of the compressed image would have decompressed it. But when we initiate a boot request, we modified the same decompressor code to jump to the target instance image instead.
 5.  We proceed by executing the code of the target instance image. The target instance will then boot normally.
 
@@ -130,6 +138,7 @@ This process results in the former _running_ instance becoming a _sleeping_ inst
 
 ### Section 3 Memory sharing
 On our model, the physical memory is shared between all running instances. Hosting many OS on physical memory poses a challenge on two levels:
+
 *   We must ensure that each OS respects its boundaries, and does not tamper with others OS.
 *   Physical memory becomes the limiting resource, and needs to be cleverly managed.  
 Dividing the physical memory once and for all into two or more chunks and assigning beforehand each chunk to one potential instance, is an easy but not ideal solution. This puts a lot of constraints: 
@@ -139,7 +148,9 @@ Dividing the physical memory once and for all into two or more chunks and assign
 Therefore, the memory layout needs to be flexible, and memory must be available on demand. Memory allocated to each instance should be able to change at all times.
 
 We propose to use the _Memory hotplug_ feature of Linux. This feature has been designed with two goals in mind:
+
 1.  To change the amount of available memory in a system dynamically.
+
 2.  To allow the partial replacement of failing memory hardware without shutting down the machine.  
 This is primarily targeted at data centers and servers, where downtime may have severe implications and should be avoided if possible.
 
@@ -171,7 +182,9 @@ An OS expects to see on boot all the physical RAM it _can_ use, and will do seve
     - Register and map every memory block the OS finds
 
 In Fastswitch, we do not change this behavior: we must expose every memory blocks an instance expect to see. All instances on boot will perform the previous actions, so they can _eventually_ use those blocks. This means that each instance could freely change the state of any section. Two cases are possible:
+
 1.  One section is mandatory for each instance. For example, one device driver needs to access a specific memory chunk reserved for it: a common example may be the screen frame buffer. In that case, such section must be shared: it is online for each instance. It also must not be set offline (_this operation would not make much sense, but if it succeed, the pages contained in this section would migrate elsewhere_), and any attempt to set it offline must fail.
+
 2.  In most cases, one section must not be used by two instances at the same time. It is at most online for one instance and offline for the others. Otherwise, memory corruption would ensue.  
 
 To enforce those rules, we introduce the concept of "section ownership" to ensure that each section belongs to at most one instance, or is shared among all. We use a table common to all instances to keep track of the "owner" of each section. The ownership is different from the state of a section (online or offline). For example, a section owned by an instance can be online or offline (and it is necessarily offline for any other instance). An instance cannot change the state of a section if it is not the section's owner. This protection ensures that each section appears online to only one instance (its owner) at most, excluding the shared sections.
@@ -229,6 +242,7 @@ The only lacking function is how to close an instance. (__TODO bug here, can't e
 
 #### Switching instance
 We use the regular suspend and resume operations for Fastswitch. There are two implications:
+
 1.  All suspend and resume callbacks are called each time we want to switch: the speed of the switching relies on the speed of the callbacks. For reliability reasons, we undergo the whole suspend and resume process, to make sure every device is correctly suspended.
     The time elapsed during a switching operation, on the worst case, is about 1.5 seconds (__TODO check again__).  
     Optimizations can be made by hand picking which device we need to suspend. We can therefore leave the other untouched, and save time. Involved instances still need to coordinate how they set the device states (__TODO look for examples__).
