@@ -130,6 +130,7 @@ The process involves several steps:
     *   Since the boot loader overwrites several memory ranges by loading files and data, we have to make sure to forbid any instance to use those locations.
 
 4.  On normal operation, the decompressor code placed at the head of the compressed image would have decompressed it. But when we initiate a boot request, we modified the same decompressor code to jump to the target instance image instead.
+
 5.  We proceed by executing the code of the target instance image. The target instance will then boot normally.
 
 This process results in the former _running_ instance becoming a _sleeping_ instance, ready to be called back. At its place, the new instance becomes the _running_ instance.
@@ -186,7 +187,7 @@ In Fastswitch, we do not change this behavior: we must expose every memory block
 
 2.  In most cases, one section must not be used by two instances at the same time. It is at most online for one instance and offline for the others. Otherwise, memory corruption would ensue.  
 
-To enforce those rules, we introduce the concept of "section ownership" to ensure that each section belongs to at most one instance, or is shared among all. We use a table common to all instances to keep track of the "owner" of each section. The ownership is different from the state of a section (online or offline). For example, a section owned by an instance can be online or offline (and it is necessarily offline for any other instance). An instance cannot change the state of a section if it is not the section's owner. This protection ensures that each section appears online to only one instance (its owner) at most, excluding the shared sections.
+To enforce those rules, we introduce the concept of _section ownership_ to ensure that each section belongs to at most one instance, or is shared among all. We use a table common to all instances to keep track of the "owner" of each section. The ownership is different from the state of a section (online or offline). For example, a section owned by an instance can be online or offline (and it is necessarily offline for any other instance). An instance cannot change the state of a section if it is not the section's owner. This protection ensures that each section appears online to only one instance (its owner) at most, excluding the shared sections.
 
 
 #### Booting an instance
@@ -273,7 +274,7 @@ The exceptions are devices that are not powered off during the suspend operation
 
 
 #### Performance
-There is no noticeable performance overhead. The only change is the performance overhead brought by the necessity for the system to manage programs with less RAM, and the _Sparse memory model_ overhead over the _Flat memory model_ (__look for a study__).
+There is no noticeable performance overhead. The only change is the performance overhead brought by the necessity for the system to manage programs with less RAM, and the _Sparse memory model_ overhead over the _Flat memory model_ (__TODO look for a study__).
 
 
 
