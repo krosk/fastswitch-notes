@@ -68,21 +68,20 @@ The term _platform_ will refer to a mobile device or terminal such as a tablet c
 Fastswitch introduces a framework which allows multiple Linux-based OS, referred as _instance_, to time-share one platform: at any time, one instance is _running_ while all other instances are _sleeping_. Three rules describe Fastswitch:
 
 1.  The _running_ instance has full control over all hardware devices including screen and any input device. Therefore, at any time, it is the only OS the user sees, and operates.  
-    This condition reflects the expectation to have the full power and capabilities of the platform when using it. 
+    This condition reflects the expectation to be able to use the full power and capabilities of the platform. 
 
 2.  The _running_ instance can go to _sleeping_ state, and start a new instance, or call any _sleeping_ instance to become the new _running_ instance in a procedure we call _switching_. The _sleeping_ instances are loaded in memory, must be ready to be called anytime, but cannot wake up by themselves.  
     This is our current answer to enable one device to have multiple usages. Each instance can be tailored to suit specific needs, and be called forth when necessary.  
 
 3.  Any instance must not interfere with any other instance. (_work in progress??_) The primary concern behind this is privacy.  
     Any instance cannot natively access the data of other loaded instances, although malicious software can explicitly inspect physical memory or mount file systems. (_to put in drawbacks of solution?_)  
-    A second concern is boxing: A crashing kernel may actually crash the whole device, resulting in losing all instance data. (_to put in drawbacks of solution?_)
+    __TODO possible improvement__ A second concern is boxing: A crashing kernel may actually crash the whole device, resulting in losing all instances data. (_to put in drawbacks of solution?_)
 
 While hardware devices are under the control of the _running_ instance, RAM and non-volatile storage are shared between each loaded (_running_ or _sleeping_) instance. This is a consequence of the third rule. We make sure that each instance only has access to the memory it owns (more details in sub-section _Memory sharing_).
 
 
 #### Sleeping state
-We are using the set of suspend and resume operations supported by Linux (referred as _suspend-to-RAM_ in Linux terminology) to put an instance into a _sleeping_ state. It ideally corresponds to a very low power state where only RAM remains powered on. Platforms with aggressive power management policy will, during suspend operations, save most if not all devices state and CPU context in RAM and power them off (or put them in a low power state), while the resume operations will power them on and restore their state.  
-The platform, on an external event triggered by user interaction or a hardware device, can resume from a suspended state by retrieving necessary data from the RAM, and re-initializing CPU and device state afterwards. Suspend and resume operations are a very common power management feature found in mobile devices, where energy saving is a critical factor; most hardware platforms are therefore ready to support Fastswitch.
+We are using the set of suspend and resume operations supported by Linux (referred as _suspend-to-RAM_ in Linux terminology) to put an instance into a _sleeping_ state. It ideally corresponds to a very low power state where only RAM remains powered on. Each device driver can implement a suspend and a resume callback to give the device the opportunity to change its state properly; these callbacks are called during the suspend and resume operations. Platforms with aggressive power management policy will, during suspend operations, save most if not all devices state and CPU context in RAM and power them off (or put them in a low power state). On an external event triggered by user interaction or a hardware device, the platform can resume from the suspended state by reading necessary data on RAM, and re-initialize the CPU and device state afterwards. Suspend and resume operations are a very common power management feature found in mobile devices, where energy saving is a critical factor; most hardware platforms are therefore ready to support Fastswitch.
 
 
 #### Switching
@@ -177,9 +176,9 @@ The term _memory block_ refers to a single contiguous memory area, included in t
 The term _memory section_ refers a section as defined in the _Sparse memory model_, that is, a single contiguous memory area, included in the physical RAM, but with constraints in the size, starting and ending address.
 
 An OS expects to see on boot all the physical RAM it _can_ use, and will do several platform-specific operations:
-    - Remove memory blocks from the System RAM: the kernel will never read or write those blocks, so specific drivers can use them freely
-    - Reserve portions of the memory
-    - Register and map every memory block the OS finds
+    *   Remove memory blocks from the System RAM: the kernel will never read or write those blocks, so specific drivers can use them freely
+    *   Reserve portions of the memory
+    *   Register and map every memory block the OS finds
 
 In Fastswitch, we do not change this behavior: we must expose every memory blocks an instance expect to see. All instances on boot will perform the previous actions, so they can _eventually_ use those blocks. This means that each instance could freely change the state of any section. Two cases are possible:
 
@@ -216,8 +215,8 @@ Our prototype of Fastswitch has been implemented on a Galaxy Nexus smartphone. T
 
 Due to the scarcity of the available operating systems for the Galaxy Nexus, we implemented Fastswitch on Android 4.0.4 based on Linux 3.0.8, and on Android 4.1.1 based on Linux 3.0.31.  
 No modifications were done on the bootloader level.  
-About 1500 lines of code have been added to the Linux kernel: about 100 lignes of code are platform dependant, among 500 lines of code are architecture dependant. (__TODO make a proper survey__). Several features, namely the _Sparse memory model_, were not available on ARM architecture (or on this version of the kernel) and were ported from other architecture or future versions of the kernel.
-We modified no drivers, as we hoped to make this functional with the least modifications possible.
+About 1700 lines of code have been added to the Linux kernel: about 150 lines of code are platform dependant (one third of them being assembly), about 500 lines of code are architecture dependant. (__estimation only__). Several features, namely the _Sparse memory model_, were not available on ARM architecture (or on this version of the kernel) and were ported from other architecture or future versions of the kernel.
+We modified no drivers, as we hoped to make Fastswitch functional with minimal changes and knowledge of the drivers implementation.
 
 To control Fastswitch, we implemented a debugfs based interface, accessible from any user. Simple shell scripts can control the various operations, which include:
 *   Free and reserve a number of sections, starting from an address
@@ -236,26 +235,42 @@ The evaluation criteria include:
 
 
 #### Hosting many OS
-Our implementation platform has 1Gb of RAM, with about one quarter reserved for devices. The memory requirement of Android 4.0 is big (__add a source?__), therefore we can host at most two instances, with enough memory for each instance to run a few apps. The _initial_ instance will have the full memory at its disposition on boot, so there is no differences with a regular mobile device. The _initial_ instance is able to make room for a second instance, load and boot it. Boot time of a secondary instance is the same as a regular boot. And once booted, it is possible to switch from one instance to the other (see below). It is also possible for an instance to request a few sections from the other instance.
+Our implementation platform has 1Gb of RAM, with about one quarter reserved for devices. The memory requirement of Android 4.0 is big (__TODO add a source?__), therefore we can host at most two instances, with enough memory for each instance to run a few apps. The _initial_ instance will have the full memory at its disposition on boot, so there is no differences with a regular mobile device. The _initial_ instance is able to make room for a second instance, load and boot it. Boot time of a secondary instance is the same as a regular boot. And once booted, it is possible to switch from one instance to the other (see below). It is also possible for an instance to request a few sections from the other instance.
 
 The only lacking function is how to close an instance. (__TODO bug here, can't even power off the smartphone__)
 
+
 #### Switching instance
-We use the regular suspend and resume operations for Fastswitch. There are two implications:
+To switch from an instance to another, the average time reached on our prototype is 1.44 seconds. This time may be larger due to exceptional delays occuring during the procedure, and can be further reduced with unreliable optimizations. Next is the breakdown.
 
-1.  All suspend and resume callbacks are called each time we want to switch: the speed of the switching relies on the speed of the callbacks. For reliability reasons, we undergo the whole suspend and resume process, to make sure every device is correctly suspended.
-    The time elapsed during a switching operation, on the worst case, is about 1.5 seconds (__TODO check again__).  
-    Optimizations can be made by hand picking which device we need to suspend. We can therefore leave the other untouched, and save time. Involved instances still need to coordinate how they set the device states (__TODO look for examples__).
+##### Preparation time
+Our design of Fastswitch relies on the regular suspend and resume operations of the Linux kernel. However, due to the aggressive power management policy of Android, the suspend and resume framework has been overhauled and imposes some limitations to our prototype. Contrary to desktop Linux distributions where the system could almost suspend anytime, suspend requests are not issued by the user: as soon as the system has nothing to do, a suspend request is issued automatically. To indicate that some work is undergoing and must not be interrupted by the suspend operations (a download, or music playback for example), Android added the _wakelock_ feature in the Linux kernel. A _wakelock_ is a simple two-state lock, and any task or user can request one or many locks. The system will suspend only when all _wakelocks_ are released. This opportunistic way of suspending the platform is in line with the power management policy of Android.  
 
-2.  The switching happens at the next opportunity to suspend. On Android, the suspend and resume framework has been overhauled, so suspend orders do not happen on demand, but in an opportunistic way: as soon as the system has nothing to do, a suspend request is issued. To indicate that some work is undergoing and must not be interrupted by a suspend request, Android introduced the _wakelock_ feature. A _wakelock_ is a simple two-state lock, and any task or user can request one or many locks. The system can suspend only when all _wakelocks_ are unlocked (__TODO look for the proper term__). The _wakelock_ feature imposes us to wait for the next opportunity to suspend. This may cause some delay after the switching request has been issued. Moreover, if an app holds a wakelock, it becomes impossible to switch instance. 
-    A possible optimization would be to skip wakelocks altogether when we issue a switching request. We implemented this, but the switching becomes less reliable as some tasks are not meant to be interrupted (especially when devices like audio or wifi are being used). While the tasks correctly suspends and resumes, the device state may become inconsistent. For example, during normal operation, audio is always set off by Android before calling the suspend operations. Therefore there is no need of a full flegded suspend callback inside the kernel to save the audio state, and switching instances works well. However, when skipping wakelocks, audio is not set off before suspend callbakcs are called, and will not work properly after the target instance resumes.
+The _wakelock_ feature therefore imposes a great limitation: we must wait for the next opportunity to suspend, before we can initiate a switching order. This means that as long as an app or a task holds a wakelock, it is impossible to suspend and switch to a _sleeping_ instance. Therefore, there is inevitably a delay between the time we request the switch (time at which the screen will go black) and the time the platform goes actually into suspend. On the best and most common case, this delay is 0.2 seconds long in our prototype. It can extend to a dozen of seconds or even more, depending on the time needed to release wakelocks. For example, wifi on Android may hold wakelocks with or without timeouts.
+
+A possible optimization would be to skip wakelocks altogether when we issue a switching request. This would therefore force the switching operation to occur, regardless of the state of wakelocks, and we could save the previously described delay. We implemented this, but the switching becomes less reliable as some tasks are not meant to be interrupted. While the tasks may correctly suspend and resume, the device state may become inconsistent due to incomplete driver implementation.  
+An example is audio playback: Android makes sure that if the current running app can be suspended, it will cut the sound off before undergoing the suspend operations. The audio driver therefore has the insurance that the audio device is off (not playing sound) when it executes its suspend callback. If we force the suspend to occur during a music playback, the audio device driver will find the audio device in an unexpected state, so the suspend and resume callbacks won't work as intended. A solution to this problem would be to modify the device driver so it can handle those unexpected (non-native) cases.
+
+
+##### Suspend and resume time
+All suspend and resume callbacks are called each time we want to switch: the speed of the switching relies therefore on the speed of the callbacks. For reliability reasons, we undergo the whole suspend and resume process, to make sure every device is correctly suspended.
+
+The time elapsed during a switching operation, from the moment the platform starts the suspend operations, to the moment the target instance appears on screen, is about 1.22 seconds. This time includes the time needed to suspend and resume tasks and devices.  
+
+Optimizations can be made by hand picking which device we need to suspend. Devices are not all equal, and some may not need to undergo the suspend operations, so we can reduce the time needed to. Involved instances still need to coordinate how they set the device states (__TODO look for examples__).
+
 
 #### Functionality
-Each instance retains natively the full capability of the hardware: for example, apps run at native speed, each instance can use graphic acceleration (__maybe test with a benchmark?__), receive and make calls. Switching instance does not affect the functionality of devices (save a few exceptions).  
+Each instance retains natively the full capability of the hardware: for example, apps run at native speed, each instance can use graphic acceleration (__maybe test with a benchmark?__), receive and make calls. Switching instance does not affect the functionality of devices.  
+
+If during a switch, instance A left a device to instance B in an unexpected state, it is likely that both instances will not be able to restore the device. Here is an example to illustrate this case:
+*   The wifi device can be either disabled during the suspend operations, or maintained powered on. The fact that this device is not necessarily powered off may cause conflicts when switching instances. For example, instance A has the wifi device _powered on_, but instance B has the wifi device _powered off_. We switch from instance A to instance B. Since instance B expects the wifi to be disabled, it will not execute the wifi driver resume callback, and the wifi device is actually _powered on_. Switching back to instance A will not affect the wifi device on instance A. However, an attempt to enable wifi on instance B will fail, because instance B expected a _powered off_ state.  
+If wifi is manually disabled on instance A before the switching, then the instance B can enable the wifi as it has an expected state.  
+This problem is due to multiple possible states a device can have on a suspended system (powered on or off). This makes complicated the coordination between two instances.
 
 The exceptions are devices that are not powered off during the suspend operation: 
-*   Wifi: The wifi device can be either disabled during the suspend operations, or maintained powered. The fact that this device is not necessarily powered off may cause conflicts when switching instances. For example, instance A has wifi opened, but instance B has wifi disabled. We switch from instance A to instance B. Since instance B expects the wifi to be disabled, it will not control execute its resume callback. However, an attempt to enable wifi on instance B will fail, since the wifi device is at an unexpected state. If wifi is manually disabled on instance A before the switching, then the instance B can enable the wifi. As long as both instances involved in the switching have coordinated states for their devices, the device can be correctly used. (__TODO test with two systems wifi enabled__).
 *   Camera: The camera can be used by only one instance. It seems that it is tied to one system. (__TODO to retest__)
+
 
 #### Performance
 There is no noticeable performance overhead. The only change is the performance overhead brought by the necessity for the system to manage programs with less RAM, and the _Sparse memory model_ overhead over the _Flat memory model_ (__look for a study__).
