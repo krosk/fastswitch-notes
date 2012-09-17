@@ -48,7 +48,7 @@ Miscellaneous
 
 
 ### Section 1 Introduction
-TODO reduce to the size of an abstract, add usage models as an introduction should do, what are the current solving solutions
+__TODO reduce to the size of an abstract, add usage models as an introduction should do, what are the current solving solutions__
 
 Mobile devices and terminals have for a long time followed this usage model: one device for one user with one specific usage. The advent of modern mobile operating systems allowed one same device to answer many usages, based on the amount of available software: productivity, media player, camera, games, etc... This has broadened considerably the usage model of mobile devices, which are able to complete multiple tasks under multiple environments. On another hand, tablet computers and increasingly capable smartphones have rapidly replaced personal computers for many specific usages like browsing web, watching movies, sharing activities or play games together: such mobile devices are more and more likely to be used by multiple people. Therefore, this trend has started to shift to "one device for multiple users with many usages". However, mobile device and their operating systems only focus on the single user experience; the leading OS such as Android and iOS are no exception, and such have not yet transitioned.
 
@@ -88,9 +88,9 @@ The platform, on an external event triggered by user interaction or a hardware d
 #### Switching
 The core function of Fastswitch is the ability to switch from one instance to another. In essence, the idea is simple: we use the suspend operations on the _running_ instance, and then use the resume operations on any _sleeping_ instance we want to bring forward. However, resuming an instance can be done only under two conditions:
 
--   During a switch, the control over hardware devices is expected to be handed from the _running_ instance to the _sleeping_ instance we want to switch to. This means the _running_ instance must set the devices in a state where the _sleeping_ instance can recover from, that is, the state the devices were left when the _sleeping_ instance previously suspended. Instances do not necessarily stem from the same Linux-based OS, nor must they be using the same kernel; as long as involved instances set devices to a compatible state (the simplest state being powered off), switching is possible. _TODO to speed things up, we may not need to suspend everything, actually_
+-   During a switch, the control over hardware devices is expected to be handed from the _running_ instance to the _sleeping_ instance we want to switch to. This means the _running_ instance must set the devices in a state where the _sleeping_ instance can recover from, that is, the state the devices were left when the _sleeping_ instance previously suspended. Instances do not necessarily stem from the same Linux-based OS, nor must they be using the same kernel; as long as involved instances set devices to a compatible state (the simplest state being powered off), switching is possible. __TODO to speed things up, we may not need to suspend everything, actually__
 
--   A combination of (memory mapped) registers must be set with the correct values, i.e. the values that were written when the instance went to sleep. Those registers are platform-dependant, and may include for example the physical address to assign to the program counter once the platform wakes up from suspend, or the physical addresses of MMU tables (TODO add more relevant examples). Each instance is very likely to have different values for some of those registers; if we were to resume an instance with incoherent values, the resume operation would fail, and result in exceptions, crash, memory corruption, or unpredictable effects. We choose to call those registers _mandatory resume registers_ in the next part.
+-   A combination of (memory mapped) registers must be set with the correct values, i.e. the values that were written when the instance went to sleep. Those registers are platform-dependant, and may include for example the physical address to assign to the program counter once the platform wakes up from suspend, or the physical addresses of MMU tables (__TODO add more relevant examples__). Each instance is very likely to have different values for some of those registers; if we were to resume an instance with incoherent values, the resume operation would fail, and result in exceptions, crash, memory corruption, or unpredictable effects. We choose to call those registers _mandatory resume registers_ in the next part.
 
 As an implementation detail, an instance at boot will reserve a chunk of memory for its own usage: this chunk, referred next as _instance page_, is unique to this instance and is valid as long as the instance is loaded in memory. The _instance page_ will hold the necessary data and parameters regarding this instance.
 
@@ -151,7 +151,7 @@ The principle behind _Memory Hotplug_ relies on two underlying features of Linux
 
 The most common memory model, referred as _Flat memory model_ in the Linux terminology, is to consider the physical RAM as a single physical contiguous memory area, with one starting address and one ending address. Multiple banks of RAM therefore have to be placed at successive addresses (which is the case in non-NUMA machines), and constitute together one single RAM area. The _Sparse memory model_, by contrast, takes a different approach and divides physical memory space equally into memory sections of a fixed size. The size of one section may depend on the architecture, but can be user defined. __TODO may add a picture to explain this__
 
-The physical RAM therefore does not need to be a single contiguous physical address range; even if the sections are not adjacent, the OS will still map them so we have a contiguous virtual memory space. The _Sparse memory model_ allows the OS to see memory not as a monolithic unit, but as a set of multiple units, characteristic necessary for the _Memory hotplug _feature. __TODO may need to find a performance report of sparsemem__
+The physical RAM therefore does not need to be a single contiguous physical address range; even if the sections are not adjacent, the OS will still map them so we have a contiguous virtual memory space. The _Sparse memory model_ allows the OS to see memory not as a monolithic unit, but as a set of multiple units, characteristic necessary for the _Memory hotplug_ feature. __TODO may need to find a performance report of sparsemem__
 
 _Memory hotplug_ introduces a logical state of a memory section as seen from the OS point of view: a section is _online_ or _offline_. An online section is mapped by the OS and the physical pages of the section are counted in the pool of available pages, while an offline section is mapped by the OS but its physical pages are not counted in the pool of available pages, therefore preventing the OS from using physical pages belonging to this section. The logical state of a section is unrelated to the physical presence of the RAM bank in the system (which in our case is always present), and is purely used to allow or disallow an OS to use the range of physical memory associated to this section.
 
@@ -255,8 +255,7 @@ Trash
 Since there is only one _running_ instance which make memory operations, we are not concerned by the coherency of the cache and memory..
 
 
-
-    Performance and limitations to put in performance section
+Performance and limitations to put in performance section
 
 Since each instance runs directly on hardware, no performance penalty is imposed on the OS, and device drivers don't need to be modified. However, just like virtualization, RAM is the limiting resource as any loaded instance is occupying a significant part of the RAM.
 
