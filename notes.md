@@ -50,9 +50,9 @@ Miscellaneous
 ### Section 1 Introduction
 __TODO reduce to the size of an abstract, add usage models as an introduction should do, what are the current solving solutions__
 
-Mobile devices and terminals have for a long time followed this usage model: one device for one user with one specific usage. The advent of modern mobile operating systems allowed one same device to answer many usages, based on the amount of available software: productivity, media player, camera, games, etc... This has broadened considerably the usage model of mobile devices, which are able to complete multiple tasks under multiple environments. On another hand, tablet computers and increasingly capable smartphones have rapidly replaced personal computers for many specific usages like browsing web, watching movies, sharing activities or play games together: such mobile devices are more and more likely to be used by multiple people. Therefore, this trend has started to shift to "one device for multiple users with many usages". However, mobile device and their operating systems only focus on the single user experience; the leading OS such as Android and iOS are no exception, and such have not yet transitioned.
+Mobile devices and terminals have for a long time followed this usage model: one device for one user with one specific usage. The advent of modern mobile operating systems allowed one same device to answer many usages, based on the amount of available software: productivity, media player, camera, games, etc... This has broadened considerably the usage model of mobile devices, which are able to complete multiple tasks under multiple environments. On another hand, tablet computers and increasingly capable smartphones have rapidly replaced personal computers for many specific usages like browsing web, watching movies, sharing activities or play games together: such mobile devices are more and more likely to be used by multiple people. Therefore, this trend has started to shift to "one device for multiple users with many usages". However, mobile device and their operating systems only focus on the single user experience; the leading OS such as Android and iOS are no exception, and such have not yet made the transition.
 
-The problem of many people using one platform has been answered long ago on traditional desktop computers, as they experienced the same transition: commodity OS like Windows, Mac OSX or any Linux-based desktop distribution have introduced the multi-session feature, and ensure that multiple people can use one computer, with each user having its own privacy, data and environment. On another hand, one user which wants to use multiple different environments has the choice of running multiple OS on their personal computer, through simple solutions such as multi-boot or virtual machines. Such solutions of course are inexistent on mobile devices, either because of inexistent OS support, or the lack of hardware support; at most, a user could have multiple devices instead, or risk exposing private data if other people use its device. This lack of support is understandable, as the shift in the usage model of mobile devices has emerged only recently.
+The problem of many people using one platform has been answered long ago on traditional desktop computers, as they experienced the same transition: commodity OS like Windows, Mac OSX or any Linux-based desktop distribution have introduced the multi-session feature, and ensure that multiple people can use one computer, with each user having its own privacy, data and environment. On another hand, a user who wants to use multiple different environments has the choice of running multiple OS on their personal computer, via common solutions like multi-boot or virtual machines. The current mobile devices and OS do not support such features; a user could have multiple devices instead, or risk exposing private data if other people use its device. This lack of support is understandable, as the shift in the usage model of mobile devices has emerged only recently.
 
 We propose Fastswitch, a solution to allow any number of Linux-based OS to time-share a mobile device: the user can use multiple environments with multiple configurations, at the same time. The user can switch very quickly from one OS to another. Each OS is independent and cannot access other running OS data (_actually, if root, they can_). Fastswitch is not a virtualization-based method, does not need any special hardware support, or any boot loader modifications, and can be readily implemented in any Linux-based smartphone or tablet computer. Fastswitch has been implemented on a Galaxy Nexus ARM-based smart-phone running Android 4.0 (Linux 3.0.8) and Android 4.1 (Linux 3.0.31).
 
@@ -216,7 +216,8 @@ Our prototype of Fastswitch has been implemented on a Galaxy Nexus smartphone. T
 
 Due to the scarcity of the available operating systems for the Galaxy Nexus, we implemented Fastswitch on Android 4.0.4 based on Linux 3.0.8, and on Android 4.1.1 based on Linux 3.0.31.  
 No modifications were done on the bootloader level.  
-About 1700 lines of code have been added to the Linux kernel: about 150 lines of code are platform dependant (one third of them being assembly), about 500 lines of code are architecture dependant. (__estimation only__). Several features, namely the _Sparse memory model_, were not available on ARM architecture (or on this version of the kernel) and were ported from other architecture or future versions of the kernel.
+Several features, namely the _Sparse memory model_, were not available on ARM architecture (or on this version of the kernel) and were ported from other architecture or future versions of the kernel.
+About 1700 lines of code have been added to the Linux kernel: about 150 lines of code are platform dependant (one third of them being assembly), about 500 lines of code are architecture dependant. (__estimation only__). 
 We modified no drivers, as we hoped to make Fastswitch functional with minimal changes and knowledge of the drivers implementation.
 
 To control Fastswitch, we implemented a debugfs based interface, accessible from any user. Simple shell scripts can control the various operations, which include:
@@ -238,7 +239,7 @@ The evaluation criteria include:
 #### Hosting many OS
 Our implementation platform has 1Gb of RAM, with about one quarter reserved for devices. The memory requirement of Android 4.0 is big (__TODO add a source?__), therefore we can host at most two instances, with enough memory for each instance to run a few apps. The _initial_ instance will have the full memory at its disposition on boot, so there is no differences with a regular mobile device. The _initial_ instance is able to make room for a second instance, load and boot it. Boot time of a secondary instance is the same as a regular boot. And once booted, it is possible to switch from one instance to the other (see below). It is also possible for an instance to request a few sections from the other instance.
 
-The only lacking function is how to close an instance. (__TODO bug here, can't even power off the smartphone__)
+On another direction, initiating a power off request will effectively power off the device, even if there still are _sleeping_ instances.
 
 
 #### Switching instance
@@ -275,6 +276,19 @@ The exceptions are devices that are not powered off during the suspend operation
 
 #### Performance
 There is no noticeable performance overhead. The only change is the performance overhead brought by the necessity for the system to manage programs with less RAM, and the _Sparse memory model_ overhead over the _Flat memory model_ (__TODO look for a study__).
+
+
+### Section 5 Related works
+The approach used in Fastswitch is directly inspired by another work [Supporting multiple OSes with OS switching][], which allows multiple different operating systems to run on a mobile device. Two OSes (namely Linux and WinCE) are loaded in memory on boot, and use the suspend and resume operations to prepare their state. The switching operation, though, is done by the bootloader.
+Since the two OSes are loaded on boot, RAM is severly limited for each OS. Our approach on Fastswitch is to use existing features of Linux to allow a better management of the RAM. We can change the memory amount at runtime, making it possible to load an instance at runtime and better distribute memory over the loaded instances according to their need.
+Also, in proprietary platforms where the bootloader cannot be modified nor replaced, this method becomes impossible. Our approach on Fastswitch is to move the work done by the bootloader to the OS level: while Fastswitch requires to add more lines to the OS, this also gives us better flexibility and control over the management of the multiple instances (e.g. load or close an instance). 
+
+Virtualization has been a popular method to support multiple OSes on x86-based computers, and starts to make its way on mobile device. Recent ARM cores have added virtualization support on hardware-level. (__TODO VMware mobile maybe?__). 
+Our approach is not as reliable in case of OS faulty implementation or any kind of crash. Virtualization may not take advantage of the full capability of the hardware. Compared to virtualization, we retain native execution speed as well as full hardware control. 
+
+Paravirtualization has also been a popular solution on x86-based computers. On ARM platforms, 
+[OKL4][] is a available microkernel-based hypervisor which enables to run modified OSes such as Linux, Android, Windows and Symbian side by side on the same processor. ARMv7 is not yet supported. Our solution is simple to implement (__really?__ at least only needs to understand specific components), does not rely on another piece of software (keeping software complexity low) and retains native execution speed. 
+Another work, [Cells][], is a partial virtualization, and allows to run many instances of Android over one Linux Kernel.
 
 
 
