@@ -286,9 +286,10 @@ Also, in proprietary platforms where the bootloader cannot be modified nor repla
 Virtualization has been a popular method to support multiple OSes on x86-based computers, and starts to make its way on mobile device. Recent ARM cores have added virtualization support on hardware-level. (__TODO VMware mobile maybe?__). 
 Our approach is not as reliable in case of OS faulty implementation or any kind of crash. Virtualization may not take advantage of the full capability of the hardware. Compared to virtualization, we retain native execution speed as well as full hardware control. 
 
-Paravirtualization has also been a popular solution on x86-based computers. On ARM platforms, 
-[OKL4][] is a available microkernel-based hypervisor which enables to run modified OSes such as Linux, Android, Windows and Symbian side by side on the same processor. ARMv7 is not yet supported. Our solution is simple to implement (__really?__ at least only needs to understand specific components), does not rely on another piece of software (keeping software complexity low) and retains native execution speed. 
-Another work, [Cells][], is a partial virtualization, and allows to run many instances of Android over one Linux Kernel.
+Paravirtualization has also been a popular solution on x86-based computers. On ARM platforms, [OKL4][] is a available microkernel-based hypervisor which enables to run modified OSes such as Linux, Android, Windows and Symbian side by side on the same processor. Our solution is simple to implement (__really?__ at least only needs to understand specific components), does not rely on another piece of software (keeping software complexity low) and retains native execution speed. 
+
+Another work, [Cells][], is a virtualization mechanism geared toward smartphones. The virtualized unit is not the entire OS stack (Linux + Android), but only the userstack (Android): this enables Cells to run multiple Android instances concurrently over one single kernel. Using only one kernel reduces greatly the memory requirement compared to Fastswitch, enabling Cells to run more Android instances with the same amount of memory, as well as parallel execution and instantaneous switching. However, their design choice does not allow to run other OSes or even other kernels simultaneously, which is not the case of Fastswitch. Our approach is also much easier to implement as we are not using any virtualization technique.
+
 
 
 
