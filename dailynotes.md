@@ -1337,3 +1337,20 @@ scan the pfn range, if one is found, do_migrate_range:
           basically, we replace the old _page cache index_ of the source page by the new _page cache index_ of the destination page. This is how the new page is found??
   page is replaced in the lru at the end
 ```
+
+
+### 10/10
+**interesting read on hypervisor**  
+Comparison between okl4 and vmware mvp.
+* http://www.ok-labs.com/blog/entry/vmware-mvp-how-it-works/
+Content can be added in related works regarding hypervisor type 1 and type 2.
+
+**related works** 
+As well, distinguish ARM v6 and below who have no virtualization support, and ARM v7 and higher which have virt extensions.
+
+**market share**  
+good content for the intro of thesis
+* http://www.eetimes.com/electronics-news/4229986/ARM-to-continue-tablet-domination-well-into-2013
+* http://www.forbes.com/sites/ericsavitz/2012/07/10/tablets-by-the-numbers-its-all-about-apple-and-arm/
+
+**more content in paper**
