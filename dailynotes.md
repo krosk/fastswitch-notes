@@ -1427,6 +1427,19 @@ A tentative would be to use enter_state() (kernel_power_suspend.c).
 
 The strategy would be, if it is not the initial instance, then closing an instance will return the memory to the initial instance (better would be its parent). We need can use the claim framework. 
 
-Woops, failed.
+Woops, failed. That is due to wakelocks. 
+
+Using wakelocks skip. It works. 
+
+Introducing a new mode: TERMINATE.   (and skip wakelocks for this mode). This is an alias of SUSPEND, but introduce one more condition.
+Cleaning the instance by erasing the flag on master.
+Multiple conditions to claim back memory:
+* claim_instance = master_instance (terminal condition to claim memory)
+* claim_count = 0 (no need)
+* claim_start: use virt_to_phys(PAGE_OFFSET)
+* set CMM_CLAIMED flag for each section belonging to instance
+
+
+
 
 Noticed a bug, it is when memory offline fails, the suspend will abort but if we retry it will load even if the memory is not freed... !
