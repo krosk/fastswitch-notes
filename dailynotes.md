@@ -1213,9 +1213,10 @@ Irregulars results with Quadrant, as I noticed that the CPU goes down and down..
 * http://forum.brighthand.com/android-os/286992-cpu-governors-explained-credits-xda-forum.html
 Default is interactive, switch between 320Mhz, 700Mhz, 920Mhz, 1200Mhz. Use userspace to limit to 920Mhz (at 1200Mhz it becomes hot).
 Use:
-
+```c
     echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
     echo 920000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed
+```
 
 **restored corrupted filesystem on ICS**  
 
@@ -1480,3 +1481,78 @@ Skipping wakelocks will reduce absolutely the delay part. But it will add bug me
 Other bad effect is the audio. It will tear down the wifi as well, if a switch happens when there is a transfer ongoing. The network must reboot. Sometimes, the wifi will crash and reboot itself. It is much more stable if the network is the same between both instances.
 
 Finally, I need to say that skipping wakelocks is altogether a bad idea, notably for the wifi transfers.
+
+
+**benchmark**
+Three cases:
+* A 700Mb regular Android
+* B 310Mb regular Android (used memblock reserve and remove)
+* C 310Mb Fastswitch Android OS1
+* D 310Mb Fastswitch Android OS2
+
+Antutu, Quadrant, MFLOPS, and Sunspider
+
+Use:
+```c
+    echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+    echo 920000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed
+```
+
+```
+Antutu
+* A 710Mb regular Android
+RAM     CPU1    CPU2    2d      3d      I/O     SDW     SDR
+908     1413    1050    288     1228    335     97      186
+912     1413    1051    287     1228    365     116     192
+907     1412    1050    288     1229    310     129     191
+901     1408    1049    286     1229    345     119     190
+911     1417    1050    287     1228    370     128     192
+* B 310Mb regular Android
+RAM     CPU1    CPU2    2d      3d      I/O     SDW     SDR
+902     1399    1038    287     1229    365     92      191
+902     1404    1040    287     1227    390     97      192
+909     1405    1049    287     1229    390     120     191
+904     1429    1050    287     1228    385     123     192
+903     1400    1050    287     1227    365     122     190
+* C 310Mb Fastswitch Android OS1
+
+Quadrant
+* A 710Mb regular Android
+CPU     MEM     I/O     2D      3D
+4485    1400    1114    163     1449
+4470    1397    946     162     1420
+4512    1410    1135    162     1459
+4509    1415    1141    162     1406
+4273    1445    1134    162     1449
+* B 310Mb regular Android
+CPU     MEM     I/O     2D      3D
+4500    1491    1002    162     1437
+4482    1462    979     160     1458
+4337    1410    1128    160     1389
+4459    1410    1130    163     1443
+4501    1408    1085    163     1461
+
+MFLOPS-v7 
+http://www.roylongbottom.org.uk/android%20multithreading%20benchmarks.htm#anchor2
+32 Ops/Word for the RAM section
+* A 710Mb regular Android
+TIME    1T  2T  8T
+11.2    426 871 866
+11.1    426 874 866
+11.2    426 875 869
+11.1    425 875 869
+11.1    426 868 866
+* B 310Mb regular Android
+TIME    1T  2T  8T
+11.1    425 872 869
+11.1    417 865 872
+11.1    426 871 868
+11.2    425 869 870
+11.1    425 874 870
+
+Sunspider
+* A 710Mb regular Android 2388.0ms +- 2.1%
+
+
+```
+Just noticed that the PVR bug happened. It may be a bug of the kernel version, and not our problem.
