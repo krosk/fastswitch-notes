@@ -1515,6 +1515,18 @@ RAM     CPU1    CPU2    2d      3d      I/O     SDW     SDR
 904     1429    1050    287     1228    385     123     192
 903     1400    1050    287     1227    365     122     190
 * C 310Mb Fastswitch Android OS1
+907     1424    1050    287     1229    345     96      190
+901     1425    1051    287     1229    350     119     192
+904     1422    1050    274     1228    365     125     191
+908     1422    1049    286     1228    355     122     189
+898     1418    1039    286     1228    345     123     190
+* D 310Mb Fastswitch Android OS2
+891     1404    1046    287     1228    215
+904     1421    1047    286     1229    295
+903     1420    1045    286     1227    305
+903     1416    1046    285     1227    305
+901     1419    1045                    280
+
 
 Quadrant
 * A 710Mb regular Android
@@ -1531,6 +1543,20 @@ CPU     MEM     I/O     2D      3D
 4337    1410    1128    160     1389
 4459    1410    1130    163     1443
 4501    1408    1085    163     1461
+* C 310Mb Fastswitch Android OS1
+CPU     MEM     I/O     2D      3D
+4514    1432    1108    163     1408
+4448    1413    1113    159     1438
+4529    1453    1129    162     1455
+4266    1355    1133    163     1435
+4530    1420    1137    163     1453
+* D 310Mb Fastswitch Android OS2
+4416    1347    2418    162     1454
+4479    1517    2233    160     1459
+4499    1465    2334    160     1453
+4498    1478    2298    160     1452
+4499    1470    2070    160     1444
+
 
 MFLOPS-v7 
 http://www.roylongbottom.org.uk/android%20multithreading%20benchmarks.htm#anchor2
@@ -1549,10 +1575,23 @@ TIME    1T  2T  8T
 11.1    426 871 868
 11.2    425 869 870
 11.1    425 874 870
+* C 310Mb Fastswitch Android OS1
+11.1    422 871 871
+11.2    426 872 826
+11.1    426 874 871
+11.1    424 859 867
+11.1    426 869 869
+* D 310Mb Fastswitch Android OS2
+11.7    416 810 812
+11.4    420 835 832
+11.4    421 820 858
+11.5    416 840 840
+11.4    422 801 845
 
 Sunspider
-* A 710Mb regular Android 2388.0ms +- 2.1%
-
+* A 710Mb regular Android           2388.0ms +- 2.1%
+* C 310Mb Fastswitch Android OS1    2288.0ms +- 1.2%
+* D 310Mb Fastswitch Android OS2    2364.0ms +- 2.7%
 
 ```
 Just noticed that the PVR bug happened. It may be a bug of the kernel version, and not our problem.
