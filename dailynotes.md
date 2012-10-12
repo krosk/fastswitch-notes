@@ -1438,8 +1438,45 @@ Multiple conditions to claim back memory:
 * claim_count = 0 (no need)
 * claim_start: use virt_to_phys(PAGE_OFFSET)
 * set CMM_CLAIMED flag for each section belonging to instance
+* set CMM_AVAILABLE on reclaim
+
+Noticed that we can switch savagely! Corrected this.
+
+Noticed that the memory reclaimed from the kernel space of OS2 is marked as not available. We correct this.
+
+Misc: When we have an error, just skip entirely the switch, how about this?
+
+Noticed a bug, it is when memory offline fails, the suspend will abort but if we retry it will load even if the memory is not free... This is becasue of the script. We need to make a check in the load_file!
 
 
+**Timing breakdown for instance to instance**
+We cheat a little here, we switch from an instance to the same instance. Timing can be done like this
+```c
+    start_time = jiffies;
+    ... activity
+    duration = jiffies - start_time;
+    msec = jiffies_to_msecs(abs(duration));
+    pr_info("%s took %d.%03d seconds\n", label, msec / 1000, msec % 1000);
+```
+It is handy to track a duration, but there is something odd: the jiffies calculated in the limbo are just... null, which means they are not accounted within the extra low level of the proceeedure. I doubt they are instantaneous...  
+There is, however, a mention on Suspended for xxx seconds which seems a reliable source, see kernel/power/suspend_time.c
+After reading the source, it is a time registered between the syscore suspend and the ssycore resume. We do not need to track time inside.
+
+What we can do is from the request, to start a jiffie timer, and to report time from the beginning!
 
 
-Noticed a bug, it is when memory offline fails, the suspend will abort but if we retry it will load even if the memory is not freed... !
+**observations**
+The next opportunity to suspend. This is the major source of fluctuation. They are all due to wakelocks. 
+It can be occaional delays (type 1) or hard delays (type 2). Occasional delays have timeout, and are due to hasard in Android, wifi. Hard delays are due to wakelocks without timeout, ie audio (finishes when it finishes).
+
+Other timings are do not fluctuate so much, the most stable being the limbo (it is a hard sequence, so there is not much to change).
+Was afraid that the cpuspeed fluctuation (due to the interactive governor) would change things, but it seems not.
+
+prints reaaaally take some time...
+
+The first time we switch, it is fast, 88 versus 238 ms. There might be some reasons behind... but the code can clearly be optimised, I think?   
+
+Skipping wakelocks will reduce absolutely the delay part. But it will add bug messages on early device (+0.1s), and sometimes lead to a cascade fail of devices suspend. Something i did not notice before, it is the wakelock skip, it is effective for ALL instances, and is disabled each time an OS boots.  
+Other bad effect is the audio. It will tear down the wifi as well, if a switch happens when there is a transfer ongoing. The network must reboot. Sometimes, the wifi will crash and reboot itself. It is much more stable if the network is the same between both instances.
+
+Finally, I need to say that skipping wakelocks is altogether a bad idea, notably for the wifi transfers.
