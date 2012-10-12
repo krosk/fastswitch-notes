@@ -1391,3 +1391,42 @@ One problem is that removed memory is still mapped. It seems, according to the d
 * http://onlinelibrary.wiley.com/doi/10.1002/ecjc.20343/pdf
 * mint: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6103093
 * shimos: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=4591581&tag=1
+
+
+### 12/10  
+**trying the power off trick to unload a system**
+in omap/kernel/sys.c, the 
+```c
+    kernel_power_off()
+        kernel_shutdown_prepare()
+            blocking_notifier_call_chain()
+            usermodehelper_disable()
+            device_shutdown()
+        disable_non_boot_cpus()
+        syscore_shutdown()
+        ..
+        machine_power_off()
+        Question is, does the machine stop here?
+    depending on where it is called, it will call
+    machine_halt()
+        machine_shutdown()
+        while(1)
+```
+
+In the otehr side, we have on the suspend (kernel/power/suspend.c):
+```
+    device_suspend()
+    suspend_enter()
+        disable_nonboot_cpu()
+        disable_irqs()
+        syscore_suspend()
+```
+
+It is important to keep devices in a suspended state, so we really need to do things before kernel_shutdown_prepare().
+A tentative would be to use enter_state() (kernel_power_suspend.c).
+
+The strategy would be, if it is not the initial instance, then closing an instance will return the memory to the initial instance (better would be its parent). We need can use the claim framework. 
+
+Woops, failed.
+
+Noticed a bug, it is when memory offline fails, the suspend will abort but if we retry it will load even if the memory is not freed... !
