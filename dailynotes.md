@@ -1205,7 +1205,7 @@ Ref list on draft
 Made a bunch of benchmark with
 * Quadrant: 
 * AnTuTu: 
-* RandSpeed:
+* RandMem:
 
 Irregulars results with Quadrant, as I noticed that the CPU goes down and down... It is due to throttle which will scale down the frequency. Can not disable throttle in linux menu config -> I choose to scale down manually the cpu frequency.
 
@@ -1354,3 +1354,40 @@ good content for the intro of thesis
 * http://www.forbes.com/sites/ericsavitz/2012/07/10/tablets-by-the-numbers-its-all-about-apple-and-arm/
 
 **more content in paper**
+
+
+### 11/10
+**Android CDD**  
+* http://source.android.com/compatibility/downloads.html
+
+**Sparse memory model perf**  
+* http://www.gossamer-threads.com/lists/linux/kernel/842302?do=post_view_threaded#842302
+
+**try RTAS instead of Eurosys**  
+* http://www.rtas.org/
+
+**About virtualization on ARM**  
+Only the cortex A15 has virtualization extensions. OKL4 has started to play with the simulator provided.
+* http://www.ok-labs.com/releases/release/open-kernel-labs-delivers-okl4-mobile-virtualization-for-arm-cortex-a1
+
+**microkernel and hypervisor, differences?**  
+* http://conferences.sigcomm.org/sigcomm/2010/papers/apsys/p19.pdf
+In two words, hypervisor are a full layer between hardware and guest, and microkernel are a thinner layer.
+
+**codezero**  
+Hypervisor for arm devices. Works for galaxy nexus, theyr run concurrently 2 androids.  
+Some questions: they say concurrently, one OS on one core. Does that means one OS has only one core available?  
+Interesting way of handling storage! Android 0 start an nfs, Android 1 access to it via NFS. This of course requires both instances to run at the same time.  
+
+**memory hotremove**  
+One problem is that removed memory is still mapped. It seems, according to the documentation, that memory hotplug never bothers to remove the memmap of removed memory.  
+* A new patch seems to be doing it. http://lwn.net/Articles/518689/
+* http://thread.gmane.org/gmane.linux.ports.sh.devel/16913
+
+**multi user on android**  
+* http://www.zdnet.com/desktop-android-multi-user-android-support-is-on-its-way-7000002143/
+
+**crazy**
+* http://onlinelibrary.wiley.com/doi/10.1002/ecjc.20343/pdf
+* mint: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6103093
+* shimos: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=4591581&tag=1
