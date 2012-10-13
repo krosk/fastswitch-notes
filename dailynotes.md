@@ -1600,3 +1600,6 @@ Just noticed that the PVR bug happened. It may be a bug of the kernel version, a
 ### 13/10
 That was hard, but finally found the correct Latex template to use for IEEE Computer Society
 * http://www.computer.org/portal/web/cscps/submission#pages
+
+* http://www.ifi.uzh.ch/icse2012/how-to-submit/  
+I think i need usletter format, and the compsocconf attribute.
