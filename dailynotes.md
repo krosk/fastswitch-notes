@@ -1603,3 +1603,17 @@ That was hard, but finally found the correct Latex template to use for IEEE Comp
 
 * http://www.ifi.uzh.ch/icse2012/how-to-submit/  
 I think i need usletter format, and the compsocconf attribute.
+
+### 14-16/10
+Got latex working.
+
+Finished the paper.
+
+Nothing to say, really. Word was good for making figures and exporting them to pdf.
+
+### 17/10
+Update Android SDK
+
+Nexus 7 lost its root. Packing a unix environment on windows with:
+* https://github.com/bmatzelle/gow/wiki
+* http://www.freeyourandroid.com/guide/extract-edit-repack-boot-img-windows
