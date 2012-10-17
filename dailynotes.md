@@ -1666,5 +1666,18 @@ The working branches with a clean dejllybean system, and a proper config, are:
 * android-omap-3.0 updated september 2012
 From this distribution, what I see is that the tuna board has no more need of any suport, the lastest with support being the jellybean one. ICS stoppsed on April.
 
-**Refactor1: initrd relocation**
-Try to implement this on x86 as well. This require a qemu environment maybe?
+**Working on which next platform?**
+x86 was not a bad idea: we have qemu, linaro kernels, uboot, and mostly anything possible. Wakelocks have disappeared, but still...  
+I am so stupid, linaro is doing ARM only work... For x86, just get the regular kernel, ha!
+Aww, forget it, I will stay on ARM, I have no time to do other things. However, I will migrate to versatile express.
+
+
+**Refactor 1: initrd relocation**
+Separated initrd relocation on two patchs, one handles the kernel code, the other handles the ARM specifc part.
+
+**Refactor 2: memory hotplug**
+It is a bit complicated here, sparsemem and memory hotplug are separate piece of code.  
+First, we do sparsemem. 
+Each sub-architecture has a ARCH_SPARSEMEM_ENABLE to indicate it supports. for OMAP4, we can do the same. Sadly, currently only tuna supports it, so it is a bit complicated to make a generality? Maybe put this on MACH_TUNA instead.
+
+So anyway, first is to set ARCH_FLATMEM_ENABLE by default. Then add sparsemem as an option. Then add memory hotplug. support
