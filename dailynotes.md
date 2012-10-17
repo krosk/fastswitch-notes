@@ -1680,4 +1680,23 @@ It is a bit complicated here, sparsemem and memory hotplug are separate piece of
 First, we do sparsemem. 
 Each sub-architecture has a ARCH_SPARSEMEM_ENABLE to indicate it supports. for OMAP4, we can do the same. Sadly, currently only tuna supports it, so it is a bit complicated to make a generality? Maybe put this on MACH_TUNA instead.
 
-So anyway, first is to set ARCH_FLATMEM_ENABLE by default. Then add sparsemem as an option. Then add memory hotplug. support
+So anyway, first is to set ARCH_FLATMEM_ENABLE by default. Then add sparsemem as an option. Then add memory hotplug. support. Then ARCH_POPULATES_NODE_MAP.
+
+By doing so, we have a proper sparsemem functional.
+
+**refactor fastswitch**
+Got a lot of work here...  
+First, make a proper directory in the linux tree, called muxos.  Found that the Kconfigs work in a tree of inclusions. Only one Kconfig is launched at the beginning (arch/arm/Kconfig) then every thing is added via source, tu build the Kconfig menu. So for an architecture to support muxos, there is only the need to add 'source "muxos/Kconfig"'.
+
+Steps:
+* import the muxos header
+* import the debug fs; it is something relatively stable and can be in a separate file.
+* import the interface to set sections offline/online
+* import pretty much anything regarding memory initialization
+* import the functions to load a file
+* (boot step) make the change in the decompressor head + the suspend body
+* (switch step) make the relative changes
+* (transfer step)
+* (closing step)
+
+And don't rewrite things! they are already done, I should just refactor, not recode the damn whole architecture...
