@@ -1616,4 +1616,25 @@ Update Android SDK
 
 Nexus 7 lost its root. Packing a unix environment on windows with:
 * https://github.com/bmatzelle/gow/wiki
-* http://www.freeyourandroid.com/guide/extract-edit-repack-boot-img-windows
+
+Went back to Ubuntu.  
+
+Process to root back the Nexus 7:
+* adb reboot-bootloader
+* fastboot flash system system.img (wasn't sure of what there was left on device)
+* got scripts from http://android-dls.com/wiki/index.php?title=HOWTO:_Unpack,_Edit,_and_Re-Pack_Boot_Images
+* git mkbootimg from http://code.google.com/p/zen-droid/downloads/detail?name=mkbootimg
+* unpack.pl boot.img
+* in the ramdisk image, edit default.prop and make the ramdisk non secure
+* repack.pl boot_alt.img
+* fastboot boot boot_alt.img
+* check root access with adb root
+* adb remount
+* get a su binary somewhere http://forum.xda-developers.com/showthread.php?t=1538053 (download the CWM super su package, there is a binary inside
+* adb push su /system/xbin/
+* adb shell
+* chmod 4755 /system/xbin/su
+* If running root checker, the device should be rooted from this point
+* Install supersu from google play
+* reboot normally  
+The result should be a secure device (can't root with adb root). boot.img is the stock one.
