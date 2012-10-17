@@ -1655,3 +1655,16 @@ git log <file>
 git show <hash>
 ```
 
+**compiling jelly bean**
+It may have not happened before, but using ics defconfig makes the wifi act up (up, reset, up, reset). I copied a new def config from the previous jelly bean port, and it works, but I don't know what I changed.
+
+The working branches with a clean dejllybean system, and a proper config, are:
+* android-omap-tuna-3.0-jb-mr0, most recent version september 2012
+* android-omap-tuna-3.0-jb-pre1, version june 2012 (pre-release I guess, it stopped more or less)
+* android-omap-tuna-3.0-mr0(.1) deprecated (Nov 2011)
+* android-omap-tuna-3.0 deprecated 2011
+* android-omap-3.0 updated september 2012
+From this distribution, what I see is that the tuna board has no more need of any suport, the lastest with support being the jellybean one. ICS stoppsed on April.
+
+**Refactor1: initrd relocation**
+Try to implement this on x86 as well. This require a qemu environment maybe?
