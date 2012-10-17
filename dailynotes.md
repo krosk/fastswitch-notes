@@ -1638,3 +1638,20 @@ Process to root back the Nexus 7:
 * Install supersu from google play
 * reboot normally  
 The result should be a secure device (can't root with adb root). boot.img is the stock one.
+
+**Refactor code**
+Noticed that in the omap kernel, the branch for ICS (android-omap-tuna-3.0-ics-mr1) has frozen. Our implementation is currently based on this branch, so there is no need to tamper with it anymore.  
+I consider moving to the JB branch altogether, so it becomes the initial system.  
+
+The branch android-omap-tuna-3.0-mr0 is not compatible with ICS, I suspect it is too new, or not adapted to the requirements of ICS (wrong binaries or whatever).
+
+**show history of a file**
+```
+git log <file>
+```
+
+**show commit content**
+```
+git show <hash>
+```
+
