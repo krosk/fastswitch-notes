@@ -1727,11 +1727,71 @@ From Michel thesis I see:
 ... there is someting wonrg
 
 From MetaOS I see:
+* Abstract
 * Introduction _ 5 pages
 * Related works _ 7 pages
 * Design _ 17 pages
 * Implementation _ 30 pages
 * Experiment _ 5 pages
-* Conlcusion + future works _ 1-2 pages
+* Conclusion + future works _ 1-2 pages
 
 MetaOS is very similar to what we done, let's start from here.
+
+**Plan**  
+Abstract, in chinese, we will look at it later.
+
+* Introduction: our introduction of the paper is a good base. But we need to indicate more data on:
+```
+- current landscape of mobile device with the ARM domination, and the reasons the usage model is changing
+- how supporting multiple OSes is a solution, and how it solved it on other platforms
+- how those solutions are going to come to mobile devices
+```
+
+* Related works: just introducing the major works, one page for each? Don't need to talk about their high and their low, we do this in Design.
+```
+- OS switching
+- Multi-boot on Android
+- Virtualization / parvirtualization
+- Exemple of Cells
+```
+
+* Design: 
+```
+- The problem: running multiple OSes blabla
+    Presenting the general challenges in running multiple OSes: two paradigms with the parallel execution / the sequential execution. Their high and their low, each regarding OS state, device state, memory state, isolation, 
+- The solution adopted: MuxOS
+    Design choice, why this design, how it solve them
+    - Sequential execution
+    - Integration in kernel
+```
+
+* Implementation
+```
+- Execution state:
+    Suspend-and-resume
+    OS
+    CPU
+- Devices
+    Suspend-and-resume
+    Each device case
+    ...
+- Memory
+    Memory hotplug
+    Memory division
+- 
+
+```
+
+* Experiment:
+```
+- The platform
+- The methodology
+    Performance
+    
+```
+
+* Results and analysis:
+```
+- Results
+
+```
