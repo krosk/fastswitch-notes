@@ -1700,3 +1700,38 @@ Steps:
 * (closing step)
 
 And don't rewrite things! they are already done, I should just refactor, not recode the damn whole architecture...
+
+### 18/10
+**refactor**  
+On architecture dependant functions, I count those:
+* image_head_check: check the existence of the fsw_page, the current action, and the addresses of tags pointer and image location. Belongs to BOOT_STEP  
+... to finish later, there are more urgent things.
+
+**graduation procedure**  
+Deadline is 16th november.  
+
+From Vincent thesis I see:
+* Abstract
+* Summary
+* Introduction
+* Related works (can write a lot here, one subsection for any category) _ 8 pages
+* Description of the system _ 30 pages
+* Experiment _ about how they tested the system. I have no data on this though. _ 8 pages
+* Results and analysis _ about how we can make things better _ 5 pages
+* Conclusion
+
+From Michel thesis I see:
+* Abstract
+* Introduction
+* Review of all kinds of soft doing the same thing
+... there is someting wonrg
+
+From MetaOS I see:
+* Introduction _ 5 pages
+* Related works _ 7 pages
+* Design _ 17 pages
+* Implementation _ 30 pages
+* Experiment _ 5 pages
+* Conlcusion + future works _ 1-2 pages
+
+MetaOS is very similar to what we done, let's start from here.
