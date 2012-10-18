@@ -1724,7 +1724,7 @@ From Michel thesis I see:
 * Abstract
 * Introduction
 * Review of all kinds of soft doing the same thing
-... there is someting wonrg
+... there is someting wrong
 
 From MetaOS I see:
 * Abstract
@@ -1778,22 +1778,19 @@ Abstract, in chinese, we will look at it later.
 - Memory
     Memory hotplug
     Memory division
-- 
-
 ```
+
 
 * Experiment:
 ```
 - The platform
 - The methodology
-    Performance
-    
+    Performance    
 ```
 
 * Results and analysis:
 ```
 - Results
-
 ```
 
 
@@ -1808,11 +1805,11 @@ it is legal to remove ccmap, and according to this one
 * 
 it is okay to remove hypernat because it is already included in hyperref.
 
-**zhmetrics**
+**zhmetrics and xetex and xeCJK**
 This package enables the use of fonts, although it does not embed them with it. Must find a way to support chinese fonts within miktyex.
 * http://miktex.org/packages/zhmetrics
 
-Got some font troubles, wanted to use xetex, but that's a bit complicated again... 
+Got some font troubles, wanted to use xetex which is able to use the fonts installed in the system, but that's a bit complicated again... 
 ```
 l.52 \char_make_active:n
 ```
@@ -1820,4 +1817,18 @@ l.52 \char_make_active:n
 * http://docs.miktex.org/2.7/relnotes/#id678352
 According to this doc, xetex is already included in miktex. The tool to use is therefore xelatex or luatex. pdflatex does not work anymore. 
 
-Tried to update miktex.
+Tried to update miktex. It is starting to look good. Now they report I lack the Adobe Song Std  font. Got them here:
+* http://ishare.iask.sina.com.cn/f/15105086.html 
+
+Got also a problem of 
+```
+xeCJK error: "key-unknown"
+```
+And no solutions yet.
+* http://www3.newsmth.net/nForum/#!article/TeX/313232
+I ended up editing thuthesis.cls, looking for ItalicFont and changing to SlantFont.
+
+Trying to enable xeCJK separately.
+* http://ftp.ctex.org/mirrors/CTAN/macros/xetex/latex/xecjk/xeCJK.pdf
+So curiously, the Adobe fonts did not work. I replaced them by SimSun, SimHei, FangSong in thuthesis.cls and finally i've got some words on pdf! 
+Damn. Anyway, in page 9 of the previous pdf, here is the equivalent between the chinese name and the name in English. 
