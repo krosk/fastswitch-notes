@@ -1795,3 +1795,29 @@ Abstract, in chinese, we will look at it later.
 - Results
 
 ```
+
+
+**THUTHESIS**  
+is a real pain in the ass. Not compatible at all with windows, and Miktex, so... 
+* https://code.google.com/p/thuthesis/
+
+**removed packages**
+No idea if they are necessary or not, but according to this link
+* 
+it is legal to remove ccmap, and according to this one
+* 
+it is okay to remove hypernat because it is already included in hyperref.
+
+**zhmetrics**
+This package enables the use of fonts, although it does not embed them with it. Must find a way to support chinese fonts within miktyex.
+* http://miktex.org/packages/zhmetrics
+
+Got some font troubles, wanted to use xetex, but that's a bit complicated again... 
+```
+l.52 \char_make_active:n
+```
+
+* http://docs.miktex.org/2.7/relnotes/#id678352
+According to this doc, xetex is already included in miktex. The tool to use is therefore xelatex or luatex. pdflatex does not work anymore. 
+
+Tried to update miktex.
