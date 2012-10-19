@@ -1832,3 +1832,7 @@ Trying to enable xeCJK separately.
 * http://ftp.ctex.org/mirrors/CTAN/macros/xetex/latex/xecjk/xeCJK.pdf
 So curiously, the Adobe fonts did not work. I replaced them by SimSun, SimHei, FangSong in thuthesis.cls and finally i've got some words on pdf! 
 Damn. Anyway, in page 9 of the previous pdf, here is the equivalent between the chinese name and the name in English. 
+
+### 19/10
+**Working with THUthesis**
+Started an initial draft, putting the plan inside. Planning to start a git repo... why not?
