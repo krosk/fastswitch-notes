@@ -1836,3 +1836,7 @@ Damn. Anyway, in page 9 of the previous pdf, here is the equivalent between the 
 ### 19/10
 **Working with THUthesis**
 Started an initial draft, putting the plan inside. Planning to start a git repo... why not?
+
+### 20/10
+**Revised plan**
+Our project has the difficulty of distinguishing design and implementation. Both are tied togethers.
