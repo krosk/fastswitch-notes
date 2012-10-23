@@ -647,6 +647,61 @@ Damn. Anyway, in page 9 of the previous pdf, here is the equivalent between the 
 **Working with THUthesis**
 Started an initial draft, putting the plan inside. Planning to start a git repo... why not?
 
-### 20/10
+### 22/10
+**Separated the notes**
+They were getting very slow to edit...
+
 **Revised plan**
-Our project has the difficulty of distinguishing design and implementation. Both are tied togethers.
+Our project has the difficulty of distinguishing design and implementation. Both are tied together, because I rely on Linux centric features to design how things are going to be. 
+
+The current paper has this structure:
+```
+Architecture
+    Principles
+        Execution priority
+        Device state conservation
+        Usage flexibility
+    CPU and Execution state
+    Physical Memory
+    Devices
+    Storage
+    Isolation
+Implementation of key features
+    Implementation overview
+    Booting OS
+    Switching OS
+    Transferring memory
+    Exiting OS
+Evaluation
+    Usability
+    Performance
+    Timing
+    Power Consumption
+Conclusion
+```
+
+A rough silu of how MuxOS has been designed, with the incremental changes:
+* All OS are on RAM. Because it is good, and quick to go from one to another, and avoid transfer time if we do OS migration.
+* a) One OS has full control of the hardware, the other OSes sleep. Because one user can use everything on the platform without limitations. 
+* b) Of course, must be able to go from one to another OS, and not lose the OS state + device state.
+* How to do a) and b)? (implementation?) Use of suspend-to-ram to suspend the others OS. We are able to switch from one to another like this, but we can't test it yet.
+* Many operations to do, many values to keep: we decided to reserve a common memory accesible to all instances, called FSW_PAGE, and its structure changed during the work.
+
+Booting up a new kernel (static memory):  
+* Moving a kernel to another start address requires to provide mem arguments and add PHYS_TO_VIRT patch.
+* We started by setting up a static physical memory layout (dividing the RAM by two) and compiling two distinct kernels.
+* Booting up a new kernel requires to load the initrd, the zImage, and prepare some ATAGS. Used the /dev/mem interface, and copied the data to arbitrary addresses (initrd must conform to the kernel boot args, for example). NOTE: we can do something dynamic here, actually, by altering the ATAGS.
+* Then we made a trampoline code at the end of suspend by making a warm-reset. This is because the second kernel requires an initialized environment.
+* It is also necessary to add a trampoline code in the decompressor head, to jump to the second kernel. The target address has been retrieved from FSW.
+* There are some impact on initial kernel:
+* a) Since the bootloader will reload, the first kernel must reserve the modified zones (including zImage, initrd, bootloader, atags, ...). Those zones were detected beforehand by making a copy of the system and comparing the copy with the original (overwritten by bootloader).
+* b) This problem forces us to relocate initrd, since it gets extracted in place and gets rewritten in the process. zImage does not get extracted in place, so it is ok.
+* c) The state of the first OS is saved on SAR, but we did not backup it: solved at the next step.
+
+Switching instances:
+* The suspend path has been altered, in order to check whether a switch order has been issued or not. Some code make checks before and after the suspend and resume.
+* The code to switch has been placed at the very beginning of the resume path (placed here because the MMU is disabled on this location). This includes code to backup the source context (SAR RAM content) into FSW, replace it by the destination context, and jump to the first instance resume address. The backup and retrieve are done from FSW.
+* This of course requires to know what is the jump address. It is omap4_cpu_resume on our case, and we need to register it in FSW as well.
+* 
+
+* However, that does not answer how we plan to share RAM.
