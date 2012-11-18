@@ -38,18 +38,16 @@ We first need to free memory in cascade. That means:
 * (1) function to retrieve the instance number p5 (core), add to init
 * TEST, check if the muxpage can be read, and if the value has been set correctly
 * (2) CST definition and struct (global.h), including AVAILABLE, OWNER_MASK
-* (2) function to initialize the CST p5 (cst.c), add to init
-* (2) the debugfs interface to print the CST (cst.c, interface.c)
+* (2) function to initialize the CST p5 (memory.c), add to init
+* (2) the debugfs interface to print the CST (memory.c)
 * TEST, verify the state of CST
-* (3) add strict onlining and offlining section p3 (cst.c, internal.h)
+* (3) add strict onlining and offlining section p3 (memory.c, internal.h)
 * TEST, verify if function get offlined or onlined correctly
-* (4) the debugfs interface to free memory, update CST and add RST p3-4(interface.c for the args treatment, cst.c for the function)
-* TEST, verify that the function offlines the correct number, and add a rst at the correct location with the correct values
+* (4) the debugfs interface to free memory, update CST, (don't add RST) p3-4(memory.c)
+* TEST, verify that the function offlines the correct number
 * (5) add the load_file tool (tool.c, internal.h)
-* (5) add the debugfs interface + function to load whatever file and update the muxpage (interface.c)
-* (5)  (interface.c)
-
-* yada yada, load file, load atags (arch dependant), suspend request
+* (5) add the debugfs interface + function to load whatever file and update the muxpage of target if it is kernel image and initrd p2 (core.c)
+* TEST, check if all files are at the correct place
 
 
 **reverse ssh** 
@@ -59,6 +57,23 @@ sushe: ssh -X yuhe@localhost -p 5678
 ```
 Don't forget to redirect the port 4567 in vbox
 
-
-
 Simultaneously try on realview or exynos?
+
+### 18/11 
+* (6') get the atags related code up and working in a muxos_arm.c p6 p2 (may need to edit makefile).
+* (6) debugfs to add them + arch-independant operations
+TEST, check if they are properly written too
+* (7) debugfs to issue the boot order and update the muxpages when loading (core.c)
+* (7) code support in the suspend operation to change the flags p10
+TEST, check if muxpage flags are edited
+* (8') add the code to handle the switchboot order, MMU disable, but no platform reset, p7 p8
+TEST, if the special code gets executed only on a switch-boot order
+* (9) add the header modification for arm p1 (head.S)
+* (9') add the reset code (sleep.S)
+TEST, if the second instance boots on reset
+* (10) add the code to add the RST, read the RST in init + update cst p5 (cst.c)
+TEST, check if the sections get updated correctly
+* (11') add the code to reload the backup (core.c / arm.c)
+* (11) add the code to handle the suspendswitch order p7 p8 (suspend.c)
+TEST, check if the suspend suceeds or not
+
