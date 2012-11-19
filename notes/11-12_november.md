@@ -40,9 +40,10 @@ We first need to free memory in cascade. That means:
 * (2) CST definition and struct (global.h), including AVAILABLE, OWNER_MASK
 * (2) function to initialize the CST p5 (memory.c), add to init
 * (2) the debugfs interface to print the CST (memory.c)
+* (2') block memory for the CST, + set shared a few sections during initialization.
 * TEST, verify the state of CST
 * (3) add strict onlining and offlining section p3 (memory.c, internal.h)
-* TEST, verify if function get offlined or onlined correctly
+* TEST, verify if section get offlined or onlined correctly with function
 * (4) the debugfs interface to free memory, update CST, (don't add RST) p3-4(memory.c)
 * TEST, verify that the function offlines the correct number
 * (5) add the load_file tool (tool.c, internal.h)
@@ -77,3 +78,19 @@ TEST, check if the sections get updated correctly
 * (11) add the code to handle the suspendswitch order p7 p8 (suspend.c)
 TEST, check if the suspend suceeds or not
 
+### 19/11
+**Administration**
+* the advisor must be set by the jiaoxueban, not the student
+* mails sent by administration were in the spam...
+* the result of the anti-plagiarism check is on the advisor
+
+**observation on linux header structure**
+* we need to define specific values for one board, it is arch dependant and therefore must be put in mach directories.
+* the include directories work by layer, one on top of another. the generic layer, then the arch layer, then the plat/mach layer.
+* On ARM, <asm/...h> will point to arch/arm/include/asm/. <mach/...h> will point to arch/arm/machxxx/include/mach/.
+* we decide to put it in a file called <mach/muxos.h>, which is the deepest we can go. plat could work as well, but mach is one step deeper.
+* if no muxos.h has been placed on a target, then it will not work.
+
+**reimplementation**
+* 0 to 3
+* for the free_memboot command, an attempt to set a section claimed, but not orphan
