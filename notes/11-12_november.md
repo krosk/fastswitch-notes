@@ -94,3 +94,12 @@ TEST, check if the suspend suceeds or not
 **reimplementation**
 * 0 to 3
 * for the free_memboot command, an attempt to set a section claimed, but not orphan
+
+**meet again a problem in freeboot**
+* offlining several sections in a row via the freeboot will trigger a page error
+* check the following things:
+* reduce the timeout
+* print the values directly in remove memory (u64)
+* offline one by one all sections, in both order to see if it is a static problem
+* offline via a hard-coded sequence
+
