@@ -168,7 +168,7 @@ Linux has a coding style of a 80 column margin. Best is to respect this margin.
 ```
 
 **reimplementation**
-* 4, 5, 6
+* 4, 5, 6, 7
 
 **thoughts about atags**
 Muxos expose only and only one recipient, in the muxos page. A temporary recipient, if needed, is the initiative of the architecture. For arm, it is necessary because the atags are not available so soon.
