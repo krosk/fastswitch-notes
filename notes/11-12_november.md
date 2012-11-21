@@ -97,9 +97,82 @@ TEST, check if the suspend suceeds or not
 
 **meet again a problem in freeboot**
 * offlining several sections in a row via the freeboot will trigger a page error
-* check the following things:
-* reduce the timeout
-* print the values directly in remove memory (u64)
-* offline one by one all sections, in both order to see if it is a static problem
+
+**check the following things:**
+* reduce the timeout (no)
+* print the values directly in remove memory (u64) (done)
+* offline one by one all sections, in both order to see if it is a static problem (yes)
 * offline via a hard-coded sequence
 
+### 21/11
+**observations on offline impossibility**
+* The bug happens at section 0x9400-0x9500 or 0x9500-0x9600, when all sections below have been freed.
+* It has nothing to do with free_memboot, it happens as well when sectiosn are manually disabled
+* It has nothing to do with the offline timeout
+* Bug happens after a certain number of sections have been offlined (5 to 6), regardless of the order, even if it is not consecutive.
+
+This may mean that the memory hotplug has not been implemented well?
+
+```
+[   82.805847] memory hotplug: 95000 - 96000
+[   82.837554] kernel BUG at /home/yuhe/dev/android/omap_base/mm/page_alloc.c:873!
+[   82.852478] Unable to handle kernel NULL pointer dereference at virtual address 00000000
+[   82.875762] pgd = c1a14000
+[   82.886199] [00000000] *pgd=00000000
+[   82.897644] Internal error: Oops: 805 [#1] PREEMPT SMP
+[   82.910644] Modules linked in:
+[   82.910675] CPU: 1    Not tainted  (3.0.31-ge29f985-dirty #80)
+[   82.910705] PC is at __bug+0x24/0x30
+[   82.910705] LR is at console_unlock+0x1a0/0x1d4
+[   82.910736] pc : [<c005b55c>]    lr : [<c00a7be0>]    psr: 60000093
+[   82.910736] sp : c1861be0  ip : 60000093  fp : c1861bec
+[   82.910736] r10: c086f3c4  r9 : c0e24000  r8 : 00000000
+[   82.910766] r7 : c0e24018  r6 : 00000002  r5 : c086eba0  r4 : 00000320
+[   82.910766] r3 : 00000000  r2 : c083e760  r1 : 60000093  r0 : 00000059
+[   82.910766] Flags: nZCv  IRQs off  FIQs on  Mode SVC_32  ISA ARM  Segment user
+[   82.910797] Control: 10c5387d  Table: 81a1404a  DAC: 00000015
+```
+
+```
+[   82.912994] [<c005b538>] (__bug+0x0/0x30) from [<c011b93c>] (move_freepages_block+0x164/0x170)
+[   82.913024] [<c011b7d8>] (move_freepages_block+0x0/0x170) from [<c011d380>] (__rmqueue+0x338/0x510)
+[   82.913024] [<c011d048>] (__rmqueue+0x0/0x510) from [<c011e1a4>] (get_page_from_freelist+0x364/0x524)
+[   82.913055] [<c011de40>] (get_page_from_freelist+0x0/0x524) from [<c011ec0c>] (__alloc_pages_nodemask+0x104/0x7d4)
+[   82.913085] [<c011eb08>] (__alloc_pages_nodemask+0x0/0x7d4) from [<c014d310>] (hotremove_migrate_alloc+0x24/0x2c)
+[   82.913116] [<c014d2ec>] (hotremove_migrate_alloc+0x0/0x2c) from [<c014e818>] (migrate_pages+0xdc/0x408)
+[   82.913146] [<c014e73c>] (migrate_pages+0x0/0x408) from [<c05f95f0>] (offline_pages.constprop.16+0x4b4/0x5dc)
+[   82.913146] [<c05f913c>] (offline_pages.constprop.16+0x0/0x5dc) from [<c014d53c>] (remove_memory+0x40/0x44)
+[   82.913177] [<c014d4fc>] (remove_memory+0x0/0x44) from [<c0316914>] (memory_block_action+0xc8/0x168)
+[   82.913208]  r5:c08c1600 r4:00095000
+[   82.913208] [<c031684c>] (memory_block_action+0x0/0x168) from [<c0316a78>] (store_mem_state+0xc4/0x100)
+[   82.913238]  r6:c78673f4 r5:00000008 r4:c78673d0
+[   82.913269] [<c03169b4>] (store_mem_state+0x0/0x100) from [<c030a5ac>] (sysdev_store+0x20/0x2c)
+[   82.913269]  r8:c0640420 r7:c78673fc r6:00000008 r5:c7866e10 r4:c58e57c0
+[   82.913299] r3:00000008
+[   82.913299] [<c030a58c>] (sysdev_store+0x0/0x2c) from [<c01a36ac>] (sysfs_write_file+0x104/0x184)
+[   82.913330] [<c01a35a8>] (sysfs_write_file+0x0/0x184) from [<c015101c>] (vfs_write+0xb0/0x140)
+[   82.913360] [<c0150f6c>] (vfs_write+0x0/0x140) from [<c015129c>] (sys_write+0x44/0x70)
+[   82.913360]  r8:00000000 r7:00000004 r6:00000008 r5:40fbd784 r4:c60b5d20
+[   82.913391] [<c0151258>] (sys_write+0x0/0x70) from [<c0057480>] (ret_fast_syscall+0x0/0x30)
+```
+
+After some source inspection, I remember this bug: it is a bug with HOLES_IN_ZONE, encountered the 30/08. The issue is that the kernel checks whether the start of the range we free is in the same zone of the end of the range. It happened before for a certain kernel.
+
+Anyway, HOLES_IN_ZONE must be enabled.
+
+**right margin in edition** 
+Linux has a coding style of a 80 column margin. Best is to respect this margin. 
+* In vi, use:
+```
+:set colorcolumn=80
+```
+
+**reimplementation**
+* 4, 5, 6
+
+**thoughts about atags**
+Muxos expose only and only one recipient, in the muxos page. A temporary recipient, if needed, is the initiative of the architecture. For arm, it is necessary because the atags are not available so soon.
+
+Muxos will call a backup(size, location) where a arch dependant function will fill the muxos page recipient.
+
+For arch dependant code, we use muxos_$(ARCH).c.
