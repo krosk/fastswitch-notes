@@ -176,3 +176,70 @@ Muxos expose only and only one recipient, in the muxos page. A temporary recipie
 Muxos will call a backup(size, location) where a arch dependant function will fill the muxos page recipient.
 
 For arch dependant code, we use muxos_$(ARCH).c.
+
+### 22/11
+**Reimplementation** 
+* 8, 9
+
+**New guest process (10) **
+* create userdata.img (size does not matter) with 
+```
+make_ext4fs -l 256M -a data new_userdata.img mnt/
+```
+and push it to /sdcard/
+* if needed, a system.img must be pushed: one downloaded directly will not work, you have to process it with simg2img.
+* same for a cache.img
+
+* get a ramdisk and extract it via
+```
+gunzip -c ../boot.img-ramdisk.cpio.gz | cpio -i
+```
+* create parent folders in init.tuna.rc, and mount the relevant file system (userdata, cache)
+```
+mkdir /parent 0700 root root
+mkdir /parent/data 0700 root root
+mount ext4 /dev/block/platform/omap/omap_hsmmc.0/by-name/userdata /parent/data wait
+mount ext4 loop@/parent/data/media/userdata.img /data wait noatime nosuid nodev nomblk_io_submit,errors=panic
+```
+* For jb, fstab.tuna does not support loop mounting, so we use the full line instead:
+mount ext4 loop@/parent/data/media/system_jb.img /system wait ro
+* repack the ramdisk via
+```
+find . | cpio -o -H newc | gzip > ../boot.img-ramdisk-repack.cpio.gz
+```
+
+* get a copy of the atags with
+```
+cat /d/muxos/boot_params > /sdcard/atags
+```
+
+* the load_image procedure goes like this: kernel to 0x91808000, initrd to 0x92800000, atags to 0x90000100
+* the kernel must be recompiled with
+```
+mem=768M@0x90000000 initrd=0x92800000,0x4f800,0x92800000
+```
+and **Makefile.boot** must be edited
+
+**compressed image header**
+* curious bug. A cmp instruction hangs. Register r5 with the flag value (0xDEADBEEF, but it is regardless of the value).
+```
+  	ldr	r4, =blank_value	@ r4 = CLEAR VALUE, for reset
+		ldr	r5, =flag_value
+		ldr	r6, [r3, #MUXOS_FLAG]	@ r6 = trigger flag
+		str	r4, [r3, #MUXOS_FLAG]	@ reset flag to avoid jumps
+		cmp	r0, r5
+		strne	r5, [r0]
+		bne	skip_switch		@ skip if not triggered
+```
+Regardless of the value of r5, it hangs.
+
+After piinpointing, it is just the comparison of this value at this place at this time... replaced the instruction with subs instead, so the flags get updated correctly.
+
+
+**early printk**
+* JB has corrected the early printk, so there is no need to comment the lines in kernel/printk.c and arch/arm/kernel/setup.c (or smth like that).
+
+**jb 2nd kernel**
+Hangs somewhere... but I have no feedback at all. It is frustrating... The header gets executed, but no way to know up to where.
+
+Fastswitch works well with the same initrd and atags. They are not responsible... might be the file copy, or the memory remove.
