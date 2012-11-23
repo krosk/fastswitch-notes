@@ -243,3 +243,30 @@ After piinpointing, it is just the comparison of this value at this place at thi
 Hangs somewhere... but I have no feedback at all. It is frustrating... The header gets executed, but no way to know up to where.
 
 Fastswitch works well with the same initrd and atags. They are not responsible... might be the file copy, or the memory remove.
+
+
+### 23/11
+**Changing approach**
+We will change completely the approach of the reimplementation: the first step will be to make the switching system functional first before thinking of the CST. Again, we do this step by step.
+
+This is due to the fact that the most unstable and hard element is wheter we can run a second kernel at a different place, the rest (memory sections etc...) can be easy to debug.
+
+Steps are to first make sure the initial system can run with SPARSEMEM and online offline a few sections, then return to FLATMEM.
+
+So far, we more or less re-applied the patches in order, up to the point where we need to remove memory for the base page. One culprit is ARCH_POPULATES_NODE_MAP which must not be activated when there is no SPARSEMEM (obviously).
+
+SPARSMEM is not the cause of the hang. Might be a logic problem...
+
+The absence of initrd does not seems to affect the boot early, this is not the cause. I really think it is a memory related case.
+
+**resolving**
+Thought of a way to test the logic of the header: instead of jumping to the second kernel, jump to the same kernel by setting up the second target to be the current one.
+
+Logic has no issues, jumping to self works.
+
+Finally! got it working (on flatmem) ... DAMN, where was the problem? I have no idea!
+
+It may have been the script to load the atags, forgot to specify a good address. Maybe.
+
+seems like it works if the fsa driver and debugll are opened. Must be that if debugll is actived, debug-macro may need to HAVE values or it hangs??? Seems like the case! So be careful in the future, if debugll is enabled, debug-macro must be configured.
+
