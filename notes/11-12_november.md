@@ -273,3 +273,96 @@ seems like it works if the fsa driver and debugll are opened. Must be that if de
 ### 24/11
 **zhang's problem**
 He has a MMU problem where he can not manage to sub the pc to match the physical address and the virtual address. After some investigation, might be because a branch prediction is performed without taking into account the changes in the translation table. According to the TRM, enabling or disabling the MMU, or making changes in the translation tables, require to invalidate entries in the branch prediction.
+
+According to the technical reference manual (TRM), the core performs branch prediction before reaching the actual branch. That is, in our case, when you do sub pc, r3, it has computed the destination before you changed the value in the translation table, and so it wil jump to 0 instead of 0xc000****.
+
+From the TRM: 
+The branch predictor maintenance operations must be used to invalidate entries in the branch predictor after
+any of the following events:
+• enabling or disabling the MMU
+• writing new data to instruction locations
+• writing new mappings to the translation tables
+• changes to the TTBR0, TTBR1, or TTBCR registers, unless accompanied by a change to the
+ContextID or the FCSE ProcessID.
+
+I was careless before, and only used a dmb to make sure the translation table was updated. Somehow, it worked, but it may not work at all cases. So you might want to try this instead:
+
+```
+MCR p15, 0, Rt, c7, c5, 6 @invalidate the branch predictions
+isb @ let it take effect
+sub pc, r3
+```
+
+**implementation strategy**
+Make the swith working with static mappings first. To test the framework, we can do an auto-switch to self.
+
+
+The sleep4xxx.S has some platform independant code, might be a good idea to put them separately. We could do a function with an address as a parameter, which is reponsible for updating the mmu transtable before disabling it. But it is not worth the trouble.
+
+Below is the procedure to update a transtable entry, as told by the TRM.
+```
+typical code for writing a translation table entry, covering changes to the instruction or data
+mappings in a uniprocessor system is:
+STR rx, [Translation table entry]
+; write new entry to the translation table
+Clean cache line [Translation table entry] : This operation is not required with the
+; Multiprocessing Extensions.
+DSB
+; ensures visibility of the data cleaned from the D Cache
+Invalidate TLB entry by MVA (and ASID if non-global) [page address]
+Invalidate BTC
+DSB
+; ensure completion of the Invalidate TLB operation
+ISB
+; ensure table changes visible to instruction fetch
+```
+
+**clean cache line**
+While not obligatory in a monoprocessor (because only one core check the cache), it must be a "clean data cache entry operation" at the point of unification (PoU). The operation will be 
+```
+mcr p15, 0, rt, c7, c11, 1 @ rt is translation table entry address
+```
+
+**invalidate tlb by MVA**
+The same line must go through "invalidate instruction cache by address" at the PoU. It is unclear what MVA should be (page address they say, but I don't know if it needs to be aligned (not cache line aligned they say).
+```
+mcr p15, 0, rt, c7, c5, 1 @ rt is mva to affect
+```
+
+**invalidate btc**
+BTC stands for branch target cache, and as such requires invalidation by the following operation:
+```
+MCR p15, 0, rt, c7, c5, 6 @ rt is mva to affect
+```
+
+**Invalidate both**
+This one will invalidate all instruction cache and flush the btc.
+```
+mcr p15, 0, rt, c7, c5, 0
+```
+
+
+**Compare memory**
+In order to autodetect the memory ranges overwritten by the bootloader, I decide to implement the function with the kernel.
+
+During the processus, I stumbled upon a weird bug. I use .equ to define constants, but some values make the platform unable to start (even without flashing).
+```
+.equ same, 0xFFFEFFFE
+```
+will block, while
+```
+.equ same, 0xFFFFFFFE
+```
+will work.
+
+Changed method; Observed that between 0x80000000 and 0x88000000, there are 0x6f96b0 of data that has been erased.
+
+Final method: we make a copy of the system to a target address just before a reset command. After the reset, we make another copy at the head of zImage. We compare both copies with a machine state. Basically, we make a list of memory ranges that are different, and placed in the muxpages. Then, on boot, we process the list and print a list of memory ranges to exclude. Should work.
+
+
+**Next**
+* add the switch command
+* add the switch pre-suspend operations, including backups and the jump to resume (p8)
+* add the tuna mrr and resume address (p6)
+
+
