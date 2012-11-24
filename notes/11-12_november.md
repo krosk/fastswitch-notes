@@ -270,3 +270,6 @@ It may have been the script to load the atags, forgot to specify a good address.
 
 seems like it works if the fsa driver and debugll are opened. Must be that if debugll is actived, debug-macro may need to HAVE values or it hangs??? Seems like the case! So be careful in the future, if debugll is enabled, debug-macro must be configured.
 
+### 24/11
+**zhang's problem**
+He has a MMU problem where he can not manage to sub the pc to match the physical address and the virtual address. After some investigation, might be because a branch prediction is performed without taking into account the changes in the translation table. According to the TRM, enabling or disabling the MMU, or making changes in the translation tables, require to invalidate entries in the branch prediction.
