@@ -368,7 +368,7 @@ Final method: we make a copy of the system to a target address just before a res
 
 ### 25/11
 **reimplementation**
-Done: suspend command, pre-suspend operations, post-suspend operations, helpers to save resume address and mrr
+Done: suspend command, pre-suspend operations, post-suspend operations, helpers to save resume address and mrr, suspend operation
 
 **silly bug of pointers**
 A curious situation: I have a struct defined like this:
@@ -391,3 +391,19 @@ struct page {
 	unsigned int regs[];
 }
 ```
+
+**new operation framework**
+It has its perks, by the fact that everything is accessible from muxos_core.c. In the suspend operation, there was a small problem: how to know whether a suspend suceeded or not? In the old version, I relied on an error return value. Here, I did not export the error value so I don' know if it managed to work or not. However, we can rely on the allow_core flag to be disabled if the suspend did work. 
+
+Second, I was forced to disable the allow_core during the suspend operation in the previous version, because I was expecting to jump back to the second resume operation where I would read the flag. In our case, since we do everything at the end operation, there is no more absolute need to disable the flag (i.e. once I jumped, I let the natural course happen). I disable it to indicate "we processed the flag, okay".
+
+
+**Exit an instance**
+* Reintegred the code for this, but wakelocks make it impossible to suspend with the screen opened.
+* Reimplemented the wakelock skip, but it is often unstable (immediate wakeup -> power-off or reboot). A way to correct this would be to yield (?).
+* There is a problem with the PowerManagerService, which is always active at the end.
+* While the secondary instance can shut down, the main one will not be able to.
+
+
+**Next** 
+CST and memory sections
