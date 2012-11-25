@@ -366,3 +366,28 @@ Final method: we make a copy of the system to a target address just before a res
 * add the tuna mrr and resume address (p6)
 
 
+### 25/11
+**reimplementation**
+Done: suspend command, pre-suspend operations, post-suspend operations, helpers to save resume address and mrr
+
+**silly bug of pointers**
+A curious situation: I have a struct defined like this:
+```
+struct page {
+	unsigned int * regs;
+}
+```
+The regs pointer is afterall just a pointer to the beginning of a zone that has been previously mapped. I want to access it with:
+```
+struct page foo;
+foo->regs[0]; // the element at address regs
+foo->regs[0x10]; // the element at address (regs + 0x40)
+```
+Curiously, it returns (foo->regs)[0] instead of foo->(regs[0]). i.e. if regs is not initialized (= 0), foo->regs[0] makes an access to address 0, and foo->regs[0x10] makes an access to address 0x10*sizeof(unsigned int).
+
+Defining regs like this works better:
+```
+struct page {
+	unsigned int regs[];
+}
+```
