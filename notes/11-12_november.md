@@ -407,3 +407,10 @@ Second, I was forced to disable the allow_core during the suspend operation in t
 
 **Next** 
 CST and memory sections
+
+### 26/11
+**reimplementation** 
+* repatched CST, free_memboot, RST.
+
+**Next**
+* exit reclaim, button switch
