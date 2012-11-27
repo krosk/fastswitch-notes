@@ -437,3 +437,7 @@ With repetitive switchs, it does not seems to be very stable... Sometimes, the n
 
 **Next**
 We don't do the memory transfer. There is few interesting things to code there, and it won't be used in the demo.
+
+**Linaro**
+* kernel source (not identified yet) http://android.git.linaro.org/gitweb?p=kernel/omap.git;a=summary
+* image : http://releases.linaro.org/12.10/android/images/galaxynexus-jb-gcc47-aosp-blob
