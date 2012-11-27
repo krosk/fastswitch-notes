@@ -414,3 +414,26 @@ CST and memory sections
 
 **Next**
 * exit reclaim, button switch
+
+### 27/11
+Reintegrated the exit claim, as well as correcting some forgotten bugs (like CST not updated when a second instance boots).
+
+**smc bug**
+Just so I don't forget it, there is a nasty bug preventing the platform to quit properly: the SMC zone is shared between both kernels, and when booting the seocnd instance, it gets rewritten with teh second instance data. That makes thinks complicated when the first instance wants to power up (as it is likely to execute code in the SMC zone), or just don't allow the second kernel to power off...
+
+**input button magic**
+Many things to see.
+* getevent is a tool which pools the /dev/input/ interface. pushing and releasing a button will triger a message.
+* source: http://www.netmite.com/android/mydroid/system/core/toolbox/getevent.c
+* What we could do is to remake a similar program, which will instead launch our muxos commands. It could be launched on boot. The drawback is it is a userspace program.
+
+**implementation**
+* Took the program getevent, removed unnecessary code, kept the strict minimum into it to poll events coming from /dev/input/event2. It is not strictly a poll: the poll() call stops and wait for an i/o to happen. Added a small machine state to handle a sequence of input, and trigger the command_switch according to the sequence.
+* Second step is to automaticcaly launch this user space program on boot: edit init.tuna.rc and add a service as a main. The program will be launched from /system/bin/gnexmuxos.
+* Third is to handle the delay in the suspend request. When pressing the buttons in the menu (with screen on), there is a delay forcing the platform to wait for wakelocks to expire, then jump. Planned to use enter_state instead of request_suspend_state, but wakelocks are still active. Tried to disable wakelocks, but there are stability issues.
+* Best is to use request_suspend_state on the lockscreen, this is the most stable and the quickest.
+
+With repetitive switchs, it does not seems to be very stable... Sometimes, the new system will hang when resuming (just after a [switch] message, so I guess it is around the assembly level.
+
+**Next**
+We don't do the memory transfer. There is few interesting things to code there, and it won't be used in the demo.
