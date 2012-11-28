@@ -441,3 +441,6 @@ We don't do the memory transfer. There is few interesting things to code there, 
 **Linaro**
 * kernel source (not identified yet) http://android.git.linaro.org/gitweb?p=kernel/omap.git;a=summary
 * image : http://releases.linaro.org/12.10/android/images/galaxynexus-jb-gcc47-aosp-blob
+
+### 28/11
+Noticed the existence of "keycodes" in the android init.rc scripts, which may be able to trigger a service on some key pressing.
