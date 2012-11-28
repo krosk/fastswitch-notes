@@ -444,3 +444,105 @@ We don't do the memory transfer. There is few interesting things to code there, 
 
 ### 28/11
 Noticed the existence of "keycodes" in the android init.rc scripts, which may be able to trigger a service on some key pressing.
+
+**initrd size**
+* tried to push a linaro ramdisk, and stumbled upon the problem of initrd size. The kernel does not boot when I report the size of the initrd in the boot command (which to my knwledge is where the size is read). 
+* tried to load a size augmented classic initrd, no avail.
+* The problem can not be solved easily as I can't read at all the logs. Can't see early printk with new initrd (but can see with old).
+* When removing the ramdisk load, it performs okay though, I can at least see early logs up to the reboot. 
+* Found the reason: ATAG_RAMDISK need to be tampered.
+* Obviously, since I used my own kernel, it did not manage to run up to Android, but at least the initrd was unpacked.
+* Got this error
+```
+init: untracked pid 305 exited
+/home/yuhe/dev/android/omap_base/drivers/misc/inv_mpu/mldl_cfg.c|inv_mpu_get_slave_config|1792 returning 4
+```
+. I suspect this
+```
+init: cannot find '/vendor/bin/pvrsrvctl', disabling 'pvrsrvctl'
+```
+is the problem.
+
+**linaro system.img**
+* They don't have proprietary binaries: indeed, the file pvrsrvctl was absent. from the system.img
+* After comparing the two system.img, discovered that there is quite a lot of differences. Linaro don't use them, therefore their kernel must have been configured to not use them?
+* From the script provided by linaro here
+```
+http://android.git.linaro.org/gitweb?p=device/samsung/tuna.git;a=blob_plain;f=merge-gnexus-blobs;hb=linaro_android_4.1.1
+```
+, I copied the missing files (except fRom?). Still don't work.
+* The error being within init, I inspected logcat and see:
+```
+load_driver(/vendor/lib/egl/libEGL_POWERVR_SGX540_120.so): Cannot load library: 
+link_image[1891]:   345 could not load needed library 'libIMGegl.so' for 'libEGL_POWE... (too long)
+```
+It is indeed a missing file, again.
+* The reason was meld not copying .so files!
+
+Finally, Linaro has successfully run as a 4.1.2 Android (but is actually teh same kernel...). 
+
+Worked, but if I add the gnexmuxos, it seems to not be able to complete the loading operation.
+
+**Linaro small issues**
+* It is very sensible to the size of initrd! remove any ~ files in it.
+* remove service bootanim in the init.rc script, and it works like a charm (no more memory hog).
+
+
+
+**Chroot Ubuntt**
+chroot. This is how they launch ubuntu on android.
+
+After some reading, it is intended to set one folder to be the root directory, so all subsequents applications running in chroot can view only up to that directory. 
+Seems like a in-kernel mechanism, where we have on and only one kernel for all distributions. 
+chroot environments are said to be "jailed", as they cannot access upper echelons. 
+
+Ubuntu, after all, is strictly a distribution over a linux kernel, so with the right set of binaries it can run over the same kernel as an android.
+
+**webOS**
+* http://www.webosnation.com/webos-ports-posts-instructions-alpha-galaxy-nexus-open-webos-port
+But they don't really provide images. One still has to compile it alone... Much trouble, he.
+
+**Cyanogenmod**
+* They have their own kernel and provide images, so they can be a good start. The only caveat is that the configs are inside the kernel and you get them only if you run one. Since I don't really want to delete my partition...
+* http://wiki.cyanogenmod.org/wiki/Building_Kernel_from_source
+* http://get.cm/?device=maguro&type=stable
+
+Official instruction at: 
+```
+http://wiki.cyanogenmod.org/wiki/Galaxy_Nexus_(GSM)
+```
+They require CWM or ROM manager, using the update.zip, which erases the current /system. We don't want that...
+
+There is no manual installation.
+
+A link about how to make a update.zip:
+* http://forum.xda-developers.com/showthread.php?t=1633025
+* Basically, there are a set of files which are going to be copied, and a META-INF folder which contains a binary + a script. The script contains several commands like "mount", set permission, etc. We can do this manually...
+
+Small problem: it is long to do manually, and symbolic links can not be created to a non-ecistant file (it is called a dangling link).
+
+-----
+
+**Next step**
+qemu-linaro among the one of interests supports : 
+* Exynos4210
+* ARM Versatile Express (several cores)
+* ARM RealView Platform Baseboard / Emulation Baseboard
+
+See supports (defconfigs): http://git.linaro.org/gitweb for linaro kernel.
+
+**Exynos 4210**
+* http://en.wikipedia.org/wiki/Exynos_(system_on_chip)
+* A dual core architecture, powering recent smartphones like GS2. The linux kernel is limited to two CPU only.
+
+**Realview**
+Realview seems to be more or less supported in linux kernel all recent versions (ie no diffs in history for the mach folder). 
+However, there is quite a difference for the other folders, like kernel or common. -> we take the linaro one.
+It has 4 cores max, and is a ARMv6 architecture... ok.
+
+**Good reading material**
+http://www.cnx-software.com/
+
+
+
+
