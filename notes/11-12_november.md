@@ -483,6 +483,8 @@ Finally, Linaro has successfully run as a 4.1.2 Android (but is actually teh sam
 
 Worked, but if I add the gnexmuxos, it seems to not be able to complete the loading operation.
 
+Linaro = same kernel
+
 **Linaro small issues**
 * It is very sensible to the size of initrd! remove any ~ files in it.
 * remove service bootanim in the init.rc script, and it works like a charm (no more memory hog).
@@ -543,6 +545,45 @@ It has 4 cores max, and is a ARMv6 architecture... ok.
 **Good reading material**
 http://www.cnx-software.com/
 
+### 29/11
+**Cyanogenmod : run a rom without erasing system**
+Summary of the problem: we have only a update.zip, which is supposed to replace the content of the system partition. What I did is to open the update.zip, understand the updater-script, and rebuild a proper cmsystem.img according to the instructions (which is usually format + copy system content + set permissions). I wrote a prog to do it in my place. Then, since we have a proper boot.img with the ramdisk, I edited the init.runa.rc to load the cmsystem.img and the cmuserdata.img instead (which we got from simg2img). flashboot boot and we are ready to go. This is how 
+
+An automatic process can be done to build a system.img from a update.zip, althought booting it would require to have an altered ramdisk.
+
+**CM10 config**
+* http://wiki.cyanogenmod.org/wiki/Building_Kernel_from_source 
+It says either to pull condig.gz from the /proc directory (doesn't work) or use a nice script they embed in their kernel:
+```
+scripts/extract-ikconfig boot.img > .config
+```
+THAT is sensible, thanks, but it did not work... damn. Might be because I downloaded a stable version.
+
+**CM10 kernel**
+Obviously, their kernel source have no trace of the tuna board... Damn. And it is absolutely not a uptodate kernel (2.6.xx). So maye they just use the official one?
+
+Let's try our kernel! Although it defeats the purpose of our experience...
+
+Had a small inconvenience, as the initrd size is bigger in CyanogenMOD. Here, it was okay to write the size as 0x50400 (real size being 0x500CE), but keep the atag to 0x4f800. That was not the case for the linaro... Anyway, seems like that the kernel works good, and that we can upgrade it to a secondary system.
+
+Therefore, we have our unoptimiwed kernel instead of theirs. Oh well, whatever, it is their fault on this one, and they probably have no kernel from the beginning.
+
+Result: CM = same kernel...
 
 
+**Switch-bug**
+Occasionally, I can't switch back. I think this is due to the fact that sometimes, debugll is opened in one but not in the other. I will try to disable it everywhere. 
+
+It is totally this.
+
+**gnexmuxos location**
+Can't put an executable bin in /data/media, sadly. Put in it /data/local then... 
+
+**Demo**
+Seems like CM10 is not stable. I think this is due to the fact that the DSS stays up sometimes on suspend of initial instance. Why does it stay up? I think it is because I press power buttons. I am almost sure it is the DSS...
+
+Changing tactics in gnexmuxos:
+* press down, press power, release power -> switch
+* or, even better: press power, release power, press down/up. This has the advantage of putting the device into sleep mode. NO that is a bad idea, because the full android goes to sleep, which requires us to press the button again. Not good.
+* press power, press down/up, release power -> switch. Release the button only when the system switched. We do this for now, because it helps to make sure the DSS is closed.
 
