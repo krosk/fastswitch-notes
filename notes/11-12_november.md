@@ -587,3 +587,51 @@ Changing tactics in gnexmuxos:
 * or, even better: press power, release power, press down/up. This has the advantage of putting the device into sleep mode. NO that is a bad idea, because the full android goes to sleep, which requires us to press the button again. Not good.
 * press power, press down/up, release power -> switch. Release the button only when the system switched. We do this for now, because it helps to make sure the DSS is closed.
 
+### 30/11
+**MIUI**
+* http://miuiandroid.com/community/threads/2-11-23.18827/
+* There is some odd command in the updater-script, called retouch_binaries. AFAIK, they have been removed in recent OTA updates.
+* Without surprises, it runs. I don't like very much the MIUI... And it is heavy on RAM.
+
+**linaro kernel**
+is out. Their patches are not compatible with ARMv6 platforms ...
+```
+Error: selected processor does not support ARM mode `bfc r0,#24,#8'
+```
+Therefore, we may need to use the vanilla kernel.
+
+**git clone ONE branch**
+```
+git init
+git remote add -t $BRANCH -f origin $REMOTE_REPO
+git checkout $BRANCH
+```
+
+**setting up environment**
+Gotta use a nano environment, I think, but they only have it for the versatile expres environment. So maybe I just have to dump it altogether? Try it anyway. Best would be to run as well a u-boot for those platforms... And eventually rebuild a rootfs with a busybox.
+
+**where to find resources for realview-mpcore**
+Directly form ARM, of course!
+* http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.faqs/ka4134.html
+* They provide U-boot image and Linux kernel image.
+* The kernel is patched against 3.3 (patch included), and the config is also present (so we can recompile it ourselves). 
+* The bootloader has been compiled from http://www.linux-arm.org/git?p=ael.git;a=blob_plain;f=u-boot/src/u-boot-armdev_090728_armdevCS_20100820.tgz;hb=HEAD
+* Filesystem images are available via a link and point to Linaro...
+
+* Download the Linux 3.3.0 kernel git. using images atm.
+
+**Running realview step by step**
+* Get both images ready
+
+* 
+```
+/opt/qemu-linaro-1.2.0/bin/qemu-system-arm -M realview-eb-mpcore -serial stdio -m 128 -kernel u-boot_bin_u-boot_realview.axf
+```
+It will load something, but qemu will complain with the sd card.
+
+* /opt/qemu-linaro-1.2.0/bin/qemu-img create -f raw sd.img 128M
+
+**realview-eb-mpcore**
+What are the specs of this platform?
+* 
+
