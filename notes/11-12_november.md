@@ -594,7 +594,7 @@ Changing tactics in gnexmuxos:
 * Without surprises, it runs. I don't like very much the MIUI... And it is heavy on RAM.
 
 **linaro kernel**
-is out. Their patches are not compatible with ARMv6 platforms ...
+is unusable. Their patches are not compatible with ARMv6 platforms ...
 ```
 Error: selected processor does not support ARM mode `bfc r0,#24,#8'
 ```
@@ -620,18 +620,85 @@ Directly form ARM, of course!
 
 * Download the Linux 3.3.0 kernel git. using images atm.
 
+**realview-eb-mpcore**
+What are the specs of this platform?
+* http://infocenter.arm.com/help/topic/com.arm.doc.dui0303e/
+* http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0303e/index.html
+
+* Identified the u-boot branch at http://www.linux-arm.org/git?p=u-boot-armdev.git;a=tree;h=refs/heads/090728_armdevCS;hb=refs/heads/090728_armdevCS
+* 
+
 **Running realview step by step**
 * Get both images ready
 
-* 
 ```
 /opt/qemu-linaro-1.2.0/bin/qemu-system-arm -M realview-eb-mpcore -serial stdio -m 128 -kernel u-boot_bin_u-boot_realview.axf
 ```
-It will load something, but qemu will complain with the sd card.
+will load something, but qemu will complain with the ethernet.
 
-* /opt/qemu-linaro-1.2.0/bin/qemu-img create -f raw sd.img 128M
+```
+/opt/qemu-linaro-1.2.0/bin/qemu-img create -f raw sd.img 128M
+```
+will create an image
 
-**realview-eb-mpcore**
-What are the specs of this platform?
-* 
+### 01/12
+**running under realview**
+* Solving first the problem of ethernet.
+```
+smc91c111_write: Bad reg 0:6
+```
+According to the documentation, this register is readonly, and so there is effectuvely something wrong here. After skipping the register, there is clearly something wrong as it tries to read register 7. That would mean a incomplete implementation of the nic (the case 0:6 does not exist), and therefore I should maybe disable it in u-boot?
 
+I suspect the issue is within u-boot. I disabled the nic with -net none, and it seems to work more or less as I at least have access to the command line in u-boot.
+
+Next, in qemu console, use 
+```
+info mtree
+```
+to have an overview of the memory map. From my observation, I only see 0x10000000 memory, which is 256Mb of ram. Don't go higher than this, because it overlaps with other things. EB does not support more memory anyway, so this will get dumped.
+
+Next, u-boot is configured with initial environments variables:
+```
+bootargs=root=/dev/nfs ip=dhcp mem=128M console=ttyAMA0 video=vc:1-2clcdfb: nfsroot=10.1.77.36:/work/exports/exported_link
+bootcmd=bootp ; bootm
+bootdelay=2
+baudrate=38400
+bootfile="/work/tftpboot/realview"
+ethaddr=00:02:F7:00:19:17
+ipaddr=10.1.77.77
+gatewayip=10.1.77.1
+serverip=10.1.77.36
+stdin=serial
+stdout=serial
+stderr=serial
+verify=n
+ethact=SMC_RV-91111-0
+```
+* bootargs: we see that the kernel expects a nfsroot, and give 128M to the system.
+* bootcmd: it tries to boot from network first (bootp). only after does it try to load from memory (bootm)
+
+What we could do is to load manually the kernel into memory... so, how do we do?
+
+u-boot seriously has issues in loading, damn...
+
+
+**changing target**
+Seems like it is possible to get a versatile-express Cortex A9 quadcore, from what I have seen in Codezero. That would help.
+* https://wiki.linaro.org/PeterMaydell/QemuVersatileExpress
+
+Therefore... yes, we switch back again to linaro. Phew.
+
+**vexpress linaro**
+* https://wiki.linaro.org/Platform/DevPlatform/Ubuntu/ImageInstallation
+* making a kernel configured from linux linaro 3.6, with the ubuntu_vexpess_config file (disabled kexec though). using -kernel zImage to boot a kernel, and it seems to boot! vexpress_defconfig seems like a classic one where the rootfs is on nfs.
+* To create the sd file used to boot (vecause the kernel expects to read in /dev/mmc), downloaded linaro-image-tools.
+* Created a sd image with
+```
+./linaro-media-create --hwpack ~/Downloads/hwpack_linaro-vexpress_20121127-445_armhf_supported.tar.gz --dev vexpress-a9 -sd sd.img
+```
+* And the image can boot with our compiled kernel (from linaro as well) with the realview platform selected.
+```
+/opt/qemu-linaro-1.2.0/bin/qemu-system-arm -M vexpress-a9 -cpu cortex-a9 -m 1024 -serial stdio -smp 4 -kernel ../linux-linaro-3.6-2012.10/out/arch/arm/boot/zImage -sd sd.img
+```
+
+* It works relatively well, but booting is long, and needs time to close as well (although it will crash at the very end).
