@@ -702,3 +702,27 @@ Therefore... yes, we switch back again to linaro. Phew.
 ```
 
 * It works relatively well, but booting is long, and needs time to close as well (although it will crash at the very end).
+* Disabled DEBUG_RODATA
+* Disabled CLCD
+* Disabled boot logo
+
+### 03/12
+**versatile express booting**
+It still takes time, about 100 seconds to have a prompt. Because it is waiting for the disk drive at / only?
+
+Discovered a tool called bootchart. Surprisingly, qemu allows to apt-get, and it download things too! That is cool.
+
+**vexpress memory structure**
+0x60008000 is the starting address for the kernel. zImage is placed at 0x60010000 by qemu. Sadly, we don't have the reserved memblock interface (that was useful btw).
+The memory goes up to 0xA0000000. Separation will be easy, 256M for each kernel (from 0x60000000 to 0x70000000). More fun if we can run more systems. We will 
+
+**Step 1: initrd**
+Must find where the initrd is copied. The debugfs exist within /sys/kernel/debug/. memblock/reserved reports:
+```
+   0: 0x60004000..0x60007fff
+   1: 0x600081c0..0x60c7aaf7 << most probably kernel only
+   2: 0x67ff8000..0x67ffcfff
+   3: 0x67ffdfc0..0x67ffffff
+```
+But no real traces of the initrd. Will try to extract it from the sd card, and feed it to qemu.
+
