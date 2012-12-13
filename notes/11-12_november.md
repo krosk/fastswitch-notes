@@ -724,5 +724,53 @@ Must find where the initrd is copied. The debugfs exist within /sys/kernel/debug
    2: 0x67ff8000..0x67ffcfff
    3: 0x67ffdfc0..0x67ffffff
 ```
-But no real traces of the initrd. Will try to extract it from the sd card, and feed it to qemu.
+But no real traces of the initrd. Will try to extract it from the sd card, and feed it to qemu. Maybe there is none?
 
+### 13/12 
+**disk waiting** 
+The slow boot is troublesome. The message is 
+```
+The disk drive for / is not ready yet or not present
+```
+I suspect a potiential incorrect uuid associated for / . From http://liquidat.wordpress.com/2007/10/15/short-tip-get-uuid-of-hard-disks/, using
+```
+ls /dev/disk/by-uuid/
+```
+I identify that the uuid is effectively present both in the devices and in the /etc/fstab. The uuid corresponds to the disk labelled rootfs, so it is not the problem. Another way to do this is
+```
+blkid /dev/mmcblk0p2
+```
+
+Adding the debug param, but it did not really help.
+
+I installed bootchart sometime ago, I thought it did not work. Seems like it does now, and files are in /var/log/upstart and /var/log/bootchart. Goota retrieve them.
+```
+sudo mount -o loop,offset=54525952 -t auto sd.img mnt/
+```
+I suddenly remember something wrong with the sd, about being very low in speed due to the writing method.
+```
+-drive if=sd,cache=writeback,file=sdcard.img
+```
+Although it should not be this problem, since we are not doing write intensive operations.
+
+**config proc**
+is present.
+
+**initrd**
+From the sd card, there is one. It gets loaded into 0x60d00000. But somehow, I think it is not the one we load originally, because the kernel asks for some modules (v3.6) absent from the initrd (v3.7). Checking the memblock/reserved, there is finally a memory reservation appearing.
+
+Result, I think initrd does not affect the kernel; we can start it even without initrd.
+
+**compile kernel to another location**
+Trying to do that: changing the mem= to 0x7000, and changing Makefile.boot. I don't know how qemu loads it at that address, and I guessed it read from I don't know where the address of the kernel. That is because qemu knows the kernel is lodging at that address. Trying to change it by recompiling qemu?
+
+File ./hw/vexpress.c
+```
+.loader_start = 0x60000000,
+```
+I think it has something to do with that. Changed its value, and it worked, and whats more, there is just no need to edit Makefile.boot, the AUTO_ZRELADDR does the job. Copied things by qemu include:
+```
+0x70000000-0x1c bootloader
+0x70010000-0x40cxxx zImage
+```
+I am pretty sure bootloader is a simple jump to 0x70010000.
