@@ -774,3 +774,28 @@ I think it has something to do with that. Changed its value, and it worked, and 
 0x70010000-0x40cxxx zImage
 ```
 I am pretty sure bootloader is a simple jump to 0x70010000.
+
+### 14/12
+Applying patches, things work so far.
+
+Adding kernelcore=128M with mem=256M (from 0x60 to 0x70), and we have 0x60 (kernel), 0x6d-0x6f (some reserved zone) blocked. Other memory is removable, and is actually lowmem... dunno if my thesis was wrong in this asumption that lowmem can not be migrated, which is actually not the case: as long as physical data located inside lowmem is referred as vmem, it is movable.
+
+There is a bug in the series of patches for muxos, in the beginning. If muxos is not enabled, the condition
+```
+if (!muxos_init())
+```
+will fail. Remember to add ifdef.
+
+### 17/12
+**one more dependency in the files** 
+About the parameters needed by SPARSEMEM, one of them is supposedly configured within mach/memory.h. Those parameters are actually contained by mach/memory.h, but included within asm/memory.h only if the architecture has CONFIG_NEED_MACH_MEMORY. This option has been included in later versions of the kernel, and need to be specified manually in the Kconfig of vexpress.
+
+**address of muxos base**
+60004000 is within a reserved region, and as such can not be used. Trying 0x9fff0000, which looks like within a unremovable region, but not reserved. The removing is successful but the ioremap fails, the location might be too ambitious. Trying 0x61000000 for now.
+
+So, it fails at all ocasions, so I guess it might be a code incompatibility instead of a placement issue. I understand now: the location is considered ram, and therefore refuses to be mapped (got this problem before). memblock remove was supposedly able to remove from proc/iomem, but it does not look like the case anymore. Oh, i remember, that is because the system is supposed to scan each of the memblocks and add them into SystemRAM, but that is not the case right now (ie it add the whole range).
+
+Alright, I did not remove them early enough, I need to go even earlier! The function building SystemRAM is located at request_standard_resources(), called quite early. Maybe we can use the .reserve like tuna?
+
+
+
