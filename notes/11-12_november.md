@@ -811,3 +811,27 @@ Seems like there are issues when the arguments have not been provided entirely.
 And there is no request_suspend_state, that was a android operation. Using pm_suspend instead, which is the direct call (no early suspend). Then trying to enable the suspend... but not sure they have it (and it is likely they don't). 
 
 It is probably because there is no suspend_ops. Adding a basic one for now, but I guess I may have to implement the lower levels.
+
+**echo mem**
+is working at high levels. The mmc acts up though, making qemu crash. I suspect it is because it is ejected
+```
+mmc0: car 4567 removed
+```
+Guess I only have to make it static.
+
+**TC2**
+Vexpress has some power management things for the TC2 chip, a A15 based board. It is not compatible with the A9 board. There may be a need to port the hotplug code to it.
+
+**hotplug cpu**
+Can offline a core with
+```
+echo 0 > /sys/devices/system/cpu/cpu1/online
+```
+Possible in qemu. Although I don't know the exact state of the cpu yet...
+
+**plan**
+First, analyze the booting operation regarding the core management.  
+The next step will be to try to boot up a system on core 2 and 3 instead of the 4 cores.  
+Third, cutting down devices to the strict minima, so there is a hope to run multiple instances (best would be to only need the cpu to be online, actually).  
+Fourth, similar to what we have on muxos, it would be to load and run another system. Up to now, we can do this except suspending. This would require to unload a core and check if it is possible to hook it to the new kernel.  
+
