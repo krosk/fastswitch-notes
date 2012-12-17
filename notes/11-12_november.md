@@ -797,5 +797,17 @@ So, it fails at all ocasions, so I guess it might be a code incompatibility inst
 
 Alright, I did not remove them early enough, I need to go even earlier! The function building SystemRAM is located at request_standard_resources(), called quite early. Maybe we can use the .reserve like tuna?
 
+Used it, and it cut the SystemRAM correctly, although ioremap continues to fail: this is because pfn_valid always return true, (there is no HAVE_ARCH_PFN_VALID), and is incidentally dependant of ARCH_HAS_HOLES_MEMORYMODEL. For now, I select it, but at term it should be a muxos requirement.
 
+Managed to finally allocate MuxOS.
 
+**slow start due to disk**
+I still have no idea of why the start is SO slow. But i suspect it is due to the sd card emulation which is slow by itself. On boot, many things are likely to be loaded and run.
+
+**load image** 
+Seems like there are issues when the arguments have not been provided entirely.
+
+**linux vanilla suspend** 
+And there is no request_suspend_state, that was a android operation. Using pm_suspend instead, which is the direct call (no early suspend). Then trying to enable the suspend... but not sure they have it (and it is likely they don't). 
+
+It is probably because there is no suspend_ops. Adding a basic one for now, but I guess I may have to implement the lower levels.
