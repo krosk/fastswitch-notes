@@ -804,6 +804,10 @@ Managed to finally allocate MuxOS.
 **slow start due to disk**
 I still have no idea of why the start is SO slow. But i suspect it is due to the sd card emulation which is slow by itself. On boot, many things are likely to be loaded and run.
 
+NFS might be a bit faster, trying this, but it has the exact same speed, and that is pretty lame...
+
+Looked at the bootchart, and for example, the network service takes about 40 seconds to start. Maybe it can be worthwhile to disable it.
+
 **load image** 
 Seems like there are issues when the arguments have not been provided entirely.
 
@@ -832,6 +836,22 @@ Possible in qemu. Although I don't know the exact state of the cpu yet...
 **plan**
 First, analyze the booting operation regarding the core management.  
 The next step will be to try to boot up a system on core 2 and 3 instead of the 4 cores.  
-Third, cutting down devices to the strict minima, so there is a hope to run multiple instances (best would be to only need the cpu to be online, actually).  
-Fourth, similar to what we have on muxos, it would be to load and run another system. Up to now, we can do this except suspending. This would require to unload a core and check if it is possible to hook it to the new kernel.  
+Third, cutting down devices to the strict minimum, so there is a hope to run multiple instances (best would be to only need the cpu to be online, actually).  
+Fourth, similar to what we have on muxos, it would be to load and run another system. Up to now, we can do this except suspending. This would require to unload a core and check if it is possible to hook it to the new kernel. Additionally, qemu has no reset commands, and its bootloader is a crappy one which only jumps to the zimage head (it does not handle image loading or whats not). 
+Fifth, add some tweaks to allow/disallow hotplug between devices.
 
+**booting operation**
+check the file hw/boot_arm.c of qemu.
+
+**qemu memory dump** 
+```
+x /fmt addr
+```
+or use xp for physical dump
+
+### 19/12
+**research axis**
+Solve the memory security problem first. If it is possible to protect each OS from accessing the memory of another, it is golden as I broaden the usage model.  
+Highlight what we can do with our work, that Cells/dual SIM/multi user can not do. It is a key condition.  
+
+About parallel execution, it is a further way, and the biggest concern is the sharing of devices. It can be designed as a future work. Check whether it would be possible to run.
