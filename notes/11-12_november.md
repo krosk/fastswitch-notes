@@ -855,3 +855,120 @@ Solve the memory security problem first. If it is possible to protect each OS fr
 Highlight what we can do with our work, that Cells/dual SIM/multi user can not do. It is a key condition.  
 
 About parallel execution, it is a further way, and the biggest concern is the sharing of devices. It can be designed as a future work. Check whether it would be possible to run.
+
+
+### week review
+How to justify the need of multiple kernels:
++ A use case is for example power management. Kernels can be optimized for low power consumption over the course of the utilization (with appropriate governors or voltage settings), as we can see for many custom ROMs; but some kernel features can not be cut off totally, like wifi or other things. With our method, we can go even further in kernel optimization by cutting off the power of possibly unused parts, and switch between kernels (or start a new session) according to our needs. In the other case, tablets and others can be overclocked over short burst, and an appropriate kernel may do so.
++ Parallel task execution, but that would require to run kernels at the same time
++ Security concerns, although Cells achieves same functionality without the use of multiple kernels
+- Multi userdata, but Android introduced this so...
++ Sandboxing, testing applications on various versions of Android on the same device (and without flashing things)
++ Gaming? some apps are tied to one system apparently, so we may have multiple characters
+On a larger scale:
++ Multiple runtime environments is possible with others OSes, as long as they respect (or we enforce) the smae device state. 
+
+
+Over Cells:
++ Multi-system: Provide a way to run multiple flavors of Android (MIUI, Cyanogen, etc...) and multiple kernels (because they are optimized differently). 
++ Less overhead, easier to implement and use on its current form
+- RAM: Higher RAM usage
+- Parallel task execution with device sharing
+
+Over general flashing:
+Using custom ROM is a matter of choice, using better supported distribution by community (kernel), and other "skins" giving another user experience (Android).
++ Current methods of supporting multiple Androids involve repetitive flashing and backups, via tools like Rom Manager, CWM, Titanium Backup, etc... With our solution, no risk of turning a smartphone into a brick, as there is no risk involved for the initial instance (no reflashing of the data/boot). Switching kernels and systems is just a matter of adding files into the SD partition. The initial kernel would need to be replaced though.
+
+
+
+TrustZone :
+Security on mobile devices has been a hot topic in the recent years, due to an increasing demand driven by manufacturers, service providers and end-consumers:
+- the end-consumer handling transactions (like payments) or sensitive data (mails, corporate secrets) should be protected from any fraud and malware
+- payable contents or feature should be protected from any fraudulent access and use
+
+In their Cortex-A line of cores, ARM has introduced a security architecture in the name of TrustZone, allowing manufacturers to design SoC with security features enabled, and software developpers to make use of those security features. 
+Two executions environment, the Secure world and the Normal (non-secure) world, coexist at the same time on the device: it could be for example a feature rich OS with a smaller secure OS. The hardware provides hardware barriers to separate entirely both worlds, so the Normal world can only make access to the Secure world via a monitor. Therefore, memory can be divided between both worlds, with a one-way access. 
+
+- trustzone has been underused before the first half of 2012
+
+Random ramblings:
+- Each core has one specific context for the normal world and the secure world (ie 2 virtual cores). Switching between both requires to make a context switch.
+- Both worlds are executed in a time-sliced fashion
+- Each world memory is addressed in a 32 bit space, and a 33 bit indicates if it is the secure or the normal world
+- Trustzone requires specific IP provided by ARM (a trustzone enabled cpu, Cortex A9 is one of them, bus, cache/memory controllers, GIC, etc...)
+- Secure world is home of some independant library calls controlling specific devices (so code in the normal environment can not sniff those devices activity), or a full fledged OS.
+- An idea would be to put a whole system stack within the secure world.
+- The CPU starts in secure mode, and is probably put into unsecure mode at boot by the bootloader. I guess it flows like that: bootloader boots, put some code in memory (secure), switch back to unsecure, load the OS, and let the things roll. Every thing the OS requires to be in the secure world has been put beforehand. => this means we could have the main environment, which is secured, and start a secondary environment, which is unsecured.
+- Each OS would have to lose previous usages of the secure world since it would be reserved to our usage.
+- That would require to know how to tamper the MMU tables on switch-boot. It is however directly usable in MuxOS, as it would require to make a context switch on suspend.
+- It is distinct from virtualization extensions, and only allows two environments (or at least, there is only one separation, but multiple environments can be hosted in one world). That is okay, because there is no really needs to run that many environments.
+- In our usage, we don't need to allow communication between both systems, we only need the memory separation. (and to boot, memory separation is only one way)
+- Switching is easy with a smc instruction if there is only two worlds. If there is a need to jump to one specific instance in one world, it would require first to jump to the world, then make the work we did before.
+- this render two kernels inequal (ie can't use the same source code in theory)
+- there is the monitor mode in between
+- On Galaxy Nexus, it is not sure what is loaded in the secure world, but for sure, if we were to run the regular kernel in a secure world, it would execute smc instructions, but it would stay in the secure world
+- One problem in using trustzone, it is he whole components that usually requires trustzone do not benefit from them anymore.
+- From a code example, it seems the monitor is some code we are expected to implement.
+- devices are memory mapped; protecting the devices requires to tag the memory address as secure or non-secure.
+
+Implementation details: p1175
+- there is one processor mode, monitor mode, that is expected to be the mode where bridge code between both worlds is executed. The monitor mode is coded as 10110.
+- smc (from any world) jumps the cpu to monitor mode, not directly to the application processor mode (user, system, irq, etc...)
+- we can read the security state of the executed code with the SCR.NS bit (1 = non secure)
+- SCR can be changed only in secure state. Jumping to non secure is done with SCR.NS <= 1, then exception return
+- general purpose registers are not banked, cpsr and spsr are not banked
+- many coprocessors are banked, and the one that are not banked are global
+- exceptions vectors are banked, but in our case it should be fairly safe
+- non secure -> secure done via SMC are some exceptions
+- secure -> non secure done via small mechanisms, which ones?
+
+SCR: p1380
+- accessible only in secure state + secure privileged modes only (no secure user mode) 
+- reset value of 0
+- NS is the bit 0. 0 = secure, 1 = non secure. When in monitor mode, the initial state of this bit is irrelevant.
+MRC p15,0,<Rt>,c1,c1,0 ; Read CP15 Secure Configuration Register
+MCR p15,0,<Rt>,c1,c1,0 ; Write CP15 Secure Configuration Register
+
+SMC: p1203
+- calling SMC within monitor mode stays in monitor mode
+- in monitor mode entry, spsr and lr have the return value, so a return from exception is enough to jump back to non-secure world (forgot which one it is though)
+- SMC called only in privileged mode (ie user app can not do this)
+p1157
+Monitor mode has access to both secure and non-secure copies of the register
+
+Translation tables: p1283
+in 1st level descriptors, there is a bit in the translation table entry indicating if the target section is secure or non secure.
+in 2nd level descriptors, there is no such bit. 
+
+Question is, what does this do in reality? 
+If the bit can be changed anytime, looks like a bit useless to me
+
+ttrb0 p1285 and p1387, is a banked register. So the previous bit looks only "indicative". The secure copy can be accessed if CP15SDISABLE is low
+
+Secure and non-secure address space p1300
+- There is two physical address space, one secure, one non-secure. registers containing the address of translation tables are banked between the two modes. 
+- Secure translation entries translate to either non secure address space, or secure address space.
+- Granularity of space is 1Mb.
+- To protect data, that would require a system to map them??? I am a bit confused now. How is protected an address in memory ?
+
+Memory region attributes p1306
+"An attribute is checked by the hardware to ensure that a region of the memory that is designated as secure by the system hardware is not accessed by memory access tagged as non-secure." The hardware refers to the memory controller on the axi bus, which will do the verification and issue an abort exception (to verify) if attribute is not compliant
+- Still, must check those attributes. From what i can see, there is two copies of the attribute table, therefore it is hard to see how one.
+Requires a TrustZone Address Space Controller
+
+Question is, they say there is two physical address space, one for Secure and one for non-secure. Therefore, physical memory is connected where? It is reasonnable to think that there is only one memory and it is accessible by both worlds
+
+Memory Accesses description p1263
+Could not find any description, but we can infer this:
+Suppose an address is tagged as secure, and there is a cache line for this address marked as secure. If a non secure tlb is tampered to access that address, the cache line will not return its content and the system will be forced to look into the memory. The controller will deny access to the line because the secure-state is not the one expected.
+This means the ns bit is only an indicator of the nature of the data we WISH to access, not of the real state of the data.
+
+Execution flow: example
+- system boots in secure mode
+- system initialize the monitor (including setting a stack and all)
+- system sets the monitor vector table, with one of the vectors (SVC or SMC) leading to the smc handler. Sadly, it can only be read and edited in secure mode
+- system triggers smc
+- monitor executes smc handler
+- monitor saves the context
+- monitor makes a jump to the normal world (could be the zimage)
+- ns system boots ns OS
