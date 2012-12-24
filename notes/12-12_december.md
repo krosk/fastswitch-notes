@@ -333,5 +333,39 @@ Execution flow: example
 
 ### first draft
 Abstract: 
-- Emergence of  security component of hosting
-- 
+- A need: multiple environments on one mobile device
+- From: Corporate needs and user pressure to use their own device
+- Key requirements: security, separation
+- Proposing lightweight alternative (no need of heavy software layer like virtualization or Cells), without performance overhead (run natively on hardware), and keeps native feature (no need of device virtualization yet) -> not true if we are forced to do device partitioning
+- We go one step further and propose a memory sharing model (and a cpu sharing model)
+- Made preliminary implementation with two linux/Android and some functional results
+
+Introduction:
+- Introduce the main need
+- Other potential needs: multi-user (just introduced by Android 4.2), developping sandbox, changing user interface
+- Existing MOBILE general kind of solutions, with virtualization (explain its drawbacks) and 
+Cells (workspace virtualization), CodeZero (hypervisor based), MobileIron (server/client), Devide (server/client), OKL4 (but does not support multi-general purpose OSes?)
+
+Architecture:
+- Two modes of execution: Sequential and Parallel, affect CPU and device sharing 
+- Sequential: 
+- - Principle: At all times, one OS run, the other are paused
+- - - CPU: each OS gets the most of the limited processing power. Security boost as execution time of each environment is tightly controlled (no risk of one environment hogghing resources, or monitoring), but impossible to run parallel tasks between environments.
+- - - Devices: each OS gets the most of the devices functionality.
+- - Implementation: Readily implementable with suspend-to-ram like, no problem of device sharing
+- Parallel: 
+- - Principle: Multiple OSes may run in parallel
+- - - CPU: One machine has at least one static core. Other cores can be dynamically added to or transferred between environments. 
+- - - Devices: Higher complexity as devices need to be shared. See NoHype
+- - Implementation: Implementable with CPU hotplugging, and specific support from the devices
+
+- Memory sharing: Model of dynamic memory layout across all OSes
+- Regardless of if it is sequential or parallel, SMP hardware can/will ensure coherency of cache and memory. 
+- No protection: readily implementable on ARM devices with memory hotplug like
+- VE: most complete solution to preserve a "per environment" protection
+- Trustzone: enough for a "per world" protection (secure/non-secure), need hardware/software support (and potentially bootloader cooperation). Contrary to x86 needs, this is a viable solution for mobile devices
+
+
+Others: 
+- NoHype has virtual i/o devices... do we need to provide this?
+- We basically move hypervisor like functions into the OS -> OH YES, set the monitor within the OS space and we are all good yeah, no need of a separate code (remember, we just need to set the monitor location).
