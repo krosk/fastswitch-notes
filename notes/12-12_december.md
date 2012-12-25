@@ -333,29 +333,31 @@ Execution flow: example
 
 ### first draft
 Abstract: 
-- A need: multiple environments on one mobile device
-- From: Corporate needs and user pressure to use their own device
-- Key requirements: security, separation
-- Proposing lightweight alternative (no need of heavy software layer like virtualization or Cells), without performance overhead (run natively on hardware), and keeps native feature (no need of device virtualization yet) -> not true if we are forced to do device partitioning
-- We go one step further and propose a memory sharing model (and a cpu sharing model)
-- Made preliminary implementation with two linux/Android and some functional results
+- A need: multiple heterogeneous OSes on one mobile device
+- From: 
+- - Corporate needs against user pressure to use their own device, with security factors in mind
+- - Broaden usage with the introduction of multiple different OSes with different apps ecosystem 
+- While existing proprietary market not focused on such offer, this is an very interesting application from the end-consumer POV or corporate. 
+- With a particular attention given to mobile devices dominated by ARM, the paper makes a study of existing solutions and their inadequation, the feasability of the idea, proposes an architecture to answer this need. Techniques described here are not limited only to mobile devices and are applicable to desktops and servers alike.
+- Made a early preliminary implementation with two linux/Android on a consumer product with some functional results
 
-Introduction:
+Introduction and motivations:
 - Introduce the main need
 - Other potential needs: multi-user (just introduced by Android 4.2), developping sandbox, changing user interface
 - Existing MOBILE general kind of solutions, with virtualization (explain its drawbacks) and 
-Cells (workspace virtualization), CodeZero (hypervisor based), MobileIron (server/client), Devide (server/client), OKL4 (but does not support multi-general purpose OSes?)
+Cells (workspace virtualization), CodeZero (hypervisor + VNC based), MobileIron (server/client), Devide (server/client), OKL4 (but does not support multi-general purpose OSes?), VNC based solutions, chroot based methods for linux over linux
 
-Architecture:
+Study:
 - Two modes of execution: Sequential and Parallel, affect CPU and device sharing 
 - Sequential: 
 - - Principle: At all times, one OS run, the other are paused
 - - - CPU: each OS gets the most of the limited processing power. Security boost as execution time of each environment is tightly controlled (no risk of one environment hogghing resources, or monitoring), but impossible to run parallel tasks between environments.
 - - - Devices: each OS gets the most of the devices functionality.
 - - Implementation: Readily implementable with suspend-to-ram like, no problem of device sharing
+- - Prototype: has been realized, with a good degree
 - Parallel: 
 - - Principle: Multiple OSes may run in parallel
-- - - CPU: One machine has at least one static core. Other cores can be dynamically added to or transferred between environments. 
+- - - CPU: One machine has at least one static core. Other cores can be dynamically added to or transferred between environments.
 - - - Devices: Higher complexity as devices need to be shared. See NoHype
 - - Implementation: Implementable with CPU hotplugging, and specific support from the devices
 
@@ -363,8 +365,12 @@ Architecture:
 - Regardless of if it is sequential or parallel, SMP hardware can/will ensure coherency of cache and memory. 
 - No protection: readily implementable on ARM devices with memory hotplug like
 - VE: most complete solution to preserve a "per environment" protection
-- Trustzone: enough for a "per world" protection (secure/non-secure), need hardware/software support (and potentially bootloader cooperation). Contrary to x86 needs, this is a viable solution for mobile devices
+- Trustzone: enough for a "per world" protection (secure/non-secure), need hardware/software support (and potentially bootloader cooperation). Contrary to x86 needs, this is a viable solution for mobile devices. A system host can be located in the secure world and controls the monitor. It has to 
 
+
+Prototype availability:
+- The first step has been to implement a watered down version of the architecture on a consumer electronics, mainly to prove that making multiple OSes cooperate on a single device directly on hardware is a possibility. We have done it.
+- The second would be to prove that heterogeneous OSes may run. Consumer electronics due to their proprietary platforms are limited in the availability of heterogeneous OSes, and therefore we
 
 Others: 
 - NoHype has virtual i/o devices... do we need to provide this?
