@@ -334,18 +334,23 @@ Execution flow: example
 ### first draft
 Abstract: 
 - A need: multiple heterogeneous OSes on one mobile device
-- From: 
-- - Corporate needs against user pressure to use their own device, with security factors in mind
+- Allows: 
 - - Broaden usage with the introduction of multiple different OSes with different apps ecosystem 
+- - Sandboxing, Corporate needs against user pressure to use their own device, with security factors in mind 
 - While existing proprietary market not focused on such offer, this is an very interesting application from the end-consumer POV or corporate. 
 - With a particular attention given to mobile devices dominated by ARM, the paper makes a study of existing solutions and their inadequation, the feasability of the idea, proposes an architecture to answer this need. Techniques described here are not limited only to mobile devices and are applicable to desktops and servers alike.
-- Made a early preliminary implementation with two linux/Android on a consumer product with some functional results
+- Made a early preliminary implementation with two linux/Android on a consumer product with some functional results. 
 
 Introduction and motivations:
-- Introduce the main need
-- Other potential needs: multi-user (just introduced by Android 4.2), developping sandbox, changing user interface
-- Existing MOBILE general kind of solutions, with virtualization (explain its drawbacks) and 
-Cells (workspace virtualization), CodeZero (hypervisor + VNC based), MobileIron (server/client), Devide (server/client), OKL4 (but does not support multi-general purpose OSes?), VNC based solutions, chroot based methods for linux over linux
+- Running multiple heterogeneous OSes on one mobile device: why it matters, and all the applications it allows. 
+- - Multi-environment with other apps choices, corporate need of separate environment, multi-user (just introduced by Android 4.2), developping sandbox, changing user interface
+- The main and highest one is to run different OSes. Other solutions allow only a subset of the possibilities.
+- Not a new idea; already present for most mobile applications where a RTOS runs alongside a general purpose OS to handle specific tasks. For GPOSes, it is however only starting.
+- Existing MOBILE general kind of solutions, with :
+- - Virtualization (CodeZero, OKL4): Powerful and flexible, but adds performance overhead. An hypervisor raises the window of attack (cf NoHype).
+- - Workspace virtualization (Cells): Efficient solution for running several android environments on the same device, but restricted to the same OS only.
+- - Server/client solutions (MobileIron, Devide): Provide a simplified environment to do some tasks, all within a server (just like a window). Varying degrees of functionality, and data are confined within a server. Secure, but do not provide the full capability of a secondary OS.
+- - Chroot+VNC based solutions for Linux (Ubuntu on Android, Linux on Android): chroot may enable running any linux-based OS over another linux-based OS, but root processes are bound to run within a full system and can get out of the box = bad security
 
 Study:
 - Two modes of execution: Sequential and Parallel, affect CPU and device sharing 
@@ -365,13 +370,19 @@ Study:
 - Regardless of if it is sequential or parallel, SMP hardware can/will ensure coherency of cache and memory. 
 - No protection: readily implementable on ARM devices with memory hotplug like
 - VE: most complete solution to preserve a "per environment" protection
-- Trustzone: enough for a "per world" protection (secure/non-secure), need hardware/software support (and potentially bootloader cooperation). Contrary to x86 needs, this is a viable solution for mobile devices. A system host can be located in the secure world and controls the monitor. It has to 
-
+- Trustzone: enough for a "per world" protection (secure/non-secure), need hardware/software support (and potentially bootloader cooperation). Contrary to x86 needs, this is a viable solution for mobile devices. A system host can be located in the secure world and controls the monitor.
 
 Prototype availability:
 - The first step has been to implement a watered down version of the architecture on a consumer electronics, mainly to prove that making multiple OSes cooperate on a single device directly on hardware is a possibility. We have done it.
-- The second would be to prove that heterogeneous OSes may run. Consumer electronics due to their proprietary platforms are limited in the availability of heterogeneous OSes, and therefore we
+- The second would be to prove that heterogeneous OSes may run. Consumer electronics due to their proprietary platforms are limited in the availability of heterogeneous OSes, and therefore we resort to use a simulator instead.
 
 Others: 
 - NoHype has virtual i/o devices... do we need to provide this?
 - We basically move hypervisor like functions into the OS -> OH YES, set the monitor within the OS space and we are all good yeah, no need of a separate code (remember, we just need to set the monitor location).
+
+### 25/12
+**Trustzone**
+Looks like it might be possible to install a custom monitor... That would be VERY interesting, although time consuming. The relevant files are in security/smc, notably bridge_pub2sec.S, with one particular function called schedule_secure_world. This means that the OS might run in a privileged mode first!
+
+After some test, found that I could not read the SRC register, and that bridge_pub2sec is executed probably within the non-secure world. This means that I am not able to execute secure code sadly (or hopefully?).
+
