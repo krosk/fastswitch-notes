@@ -338,7 +338,7 @@ Abstract:
 - - Broaden usage with the introduction of multiple different OSes with different apps ecosystem 
 - - Sandboxing, Corporate needs against user pressure to use their own device, with security factors in mind 
 - While existing proprietary market not focused on such offer, this is an very interesting application from the end-consumer POV or corporate. 
-- With a particular attention given to mobile devices dominated by ARM, the paper makes a study of existing solutions and their inadequation, the feasability of the idea, proposes an architecture to answer this need. Techniques described here are not limited only to mobile devices and are applicable to desktops and servers alike.
+- With a particular attention given to mobile devices dominated by ARM, the paper makes a study of existing solutions and their inadequation, the feasability of the idea, proposes an architecture to answer this need. Techniques described here are not limited only to mobile devices and are applicable to desktops and servers alike. This includes though on device, memory and CPU sharing.
 - Made a early preliminary implementation with two linux/Android on a consumer product with some functional results. 
 
 Introduction and motivations:
@@ -352,29 +352,33 @@ Introduction and motivations:
 - - Server/client solutions (MobileIron, Devide): Provide a simplified environment to do some tasks, all within a server (just like a window). Varying degrees of functionality, and data are confined within a server. Secure, but do not provide the full capability of a secondary OS.
 - - Chroot+VNC based solutions for Linux (Ubuntu on Android, Linux on Android): chroot may enable running any linux-based OS over another linux-based OS, but root processes are bound to run within a full system and can get out of the box = bad security
 
+
 Study:
 - Two modes of execution: Sequential and Parallel, affect CPU and device sharing 
 - Sequential: 
 - - Principle: At all times, one OS run, the other are paused
 - - - CPU: each OS gets the most of the limited processing power. Security boost as execution time of each environment is tightly controlled (no risk of one environment hogghing resources, or monitoring), but impossible to run parallel tasks between environments.
 - - - Devices: each OS gets the most of the devices functionality.
-- - Implementation: Readily implementable with suspend-to-ram like, no problem of device sharing
+- - Implementation: x86: OS switching. Readily implementable with suspend-to-ram like, no problem of device sharing
 - - Prototype: has been realized, with a good degree
 - Parallel: 
 - - Principle: Multiple OSes may run in parallel
 - - - CPU: One machine has at least one static core. Other cores can be dynamically added to or transferred between environments.
 - - - Devices: Higher complexity as devices need to be shared. See NoHype
-- - Implementation: Implementable with CPU hotplugging, and specific support from the devices
+- - Implementation: x86: Twin-Linux. Implementable with CPU hotplugging, and specific support from the devices
 
 - Memory sharing: Model of dynamic memory layout across all OSes
 - Regardless of if it is sequential or parallel, SMP hardware can/will ensure coherency of cache and memory. 
 - No protection: readily implementable on ARM devices with memory hotplug like
 - VE: most complete solution to preserve a "per environment" protection
-- Trustzone: enough for a "per world" protection (secure/non-secure), need hardware/software support (and potentially bootloader cooperation). Contrary to x86 needs, this is a viable solution for mobile devices. A system host can be located in the secure world and controls the monitor.
+- Trustzone: enough for a "per world" protection (secure/non-secure), need hardware/software support (and potentially bootloader cooperation). Contrary to x86 needs, this is a viable solution for mobile devices. A system host can be located in the secure world and controls the monitor. Trustzone is different from Virtualization in that there is no intermediate translation table (hardware only compares the secure state of the memory access with a secure tag of the target address), and therefore there is no performance penalty. 
 
 Prototype availability:
-- The first step has been to implement a watered down version of the architecture on a consumer electronics, mainly to prove that making multiple OSes cooperate on a single device directly on hardware is a possibility. We have done it.
-- The second would be to prove that heterogeneous OSes may run. Consumer electronics due to their proprietary platforms are limited in the availability of heterogeneous OSes, and therefore we resort to use a simulator instead.
+- First prototype prove that multiple OSes can cooperate on a single device directly on hardware while keeping performance, on ANY ARM consumer electronics; a watered down version of the architecture make it possible, allowing instance management (creation, booting, allocation, memory transfer) and tackle several problems met with proprietary hardware.
+- We may use features implemented within Linux, but they could very possibly another OS. OS switching has proved it possible on x86. Android and WebOS, allowing access to a wider range of programs ?
+- Second prototype goes one step further by providing memory isolation. consumer electronics with specific hardware could support this, but unfortunately, our previous prototype does not allow us to tamper with its secure part, although it has hardware support. We therefore use a emulator with crude but functional Trustzone to support our claim. Due to the small number of devices (peripherals), this also allows us to run two OSes in // without device interference.
+
+
 
 Others: 
 - NoHype has virtual i/o devices... do we need to provide this?
@@ -386,3 +390,74 @@ Looks like it might be possible to install a custom monitor... That would be VER
 
 After some test, found that I could not read the SRC register, and that bridge_pub2sec is executed probably within the non-secure world. This means that I am not able to execute secure code sadly (or hopefully?).
 
+### 26/12
+**Memory separation design**
+First scheme: master instance is secure
+- The master instance is in the secure world, as well as the muxos pages.
+- The monitor is standalone code included in the master instance => basically, the muxos pages and code becomes the monitor. Namely, much of the code which was in the assembly code of the suspend procedure.
+- MI hot remove memory ranges, copy the necessary data, setup the memory controller to cut off the memory ranges, and makes a soft reset
+- The head image must disable secure world first, then jump to second zImage
+- SI boots normally, use smc to access muxos pages, detect ranges, and register the proper informations via smc instructions to the monitor (this requires to provide an API)
+- A->B switch: A saves its context, suspend the devices, jump to monitor. Monitor gets B state (is it a secure, non-secure?), retrieve/replace the MRR, and jumps to its resume callback
+
+Second scheme: master instance is non-secure
+- It would still require the OS to boot into secure mode so we can add a monitor, and the monitor would have the same API as the previous one, + protect its data at the very beginning. The monitor code may be within the kernel and installed at the very beginning. Any process done until the monitor is installed and protected should be trusted though. 
+- The process is the same, although removing memory and memory tagging should be done by the monitor. Hot remove, copy data, tag memory, reset, jump to monitor, monitor jump to booting instance.
+
+Actually, both schemes can be done in the same way, as long as the OS installs a trusted monitor.
+Job of the monitor:
+- Control the memory tagging
+- Is the destination before any switch-jump/switch-boot
+
+Using the monitor as the arbitrer, we can run as many OSes in the secure/non-secure world.
+
+**kernel copy within QEMU**
+is extremely slow...
+
+**CPU state on boot**
+On qemu, the CPU are in an initial state:
+- main CPU: basically, loads args and entry point, jump to it
+- secondary CPU: platform dependant code, but should look like this:
+```
+static uint32_t smpboot[] = {
+  0xe59f201c, /* ldr r2, gic_cpu_if */
+  0xe59f001c, /* ldr r0, startaddr */
+  0xe3a01001, /* mov r1, #1 */
+  0xe5821000, /* str r1, [r2] */ gic_cpu_if = 1
+  0xe320f003, /* wfi */ wait until it is called
+  0xe5901000, /* ldr     r1, [r0] */ load a start address?? that more or less means jump to my kernel here
+  0xe1110001, /* tst     r1, r1 */ ok if r1 /= 0
+  0x0afffffb, /* beq     <wfi> */
+  0xe12fff11, /* bx      r1 */
+  0,          /* gic_cpu_if: base address of GIC CPU interface */
+  0           /* bootreg: Boot register address is held here */
+};
+```
+The structure is basically : wfi until the address to jump to is set up, and jump to it. In reality, the GIC and coherency problems are likely to occur
+
+**check displaced core on qemu**
+Two blobs of codes: "bootloader" and "smpboot"
+- QEMU configured with 4 cores
+- Instance configured with two cores
+- QEMU aim at running the system on core 2 and 3: core 2 on bootloader, core 0 1 and 3 on smpboot
+- On qemu source code, the cores have a reset attached (do_cpu_reset) with a check to "which one is the first_cpu", which will boot into the bootloader, and the rest into the smpboot. bootloader is found in info->loader_start, while the other are redirected to info->smp_loader_start.
+- Doing so has made the core1 as the secondary core. Trying to setup core 1 as master core instead, and it is core 0 who takes the role. Looks like there is no problems in which core is starting first.
+- Linux correctly report the core topology (ie cpu0 is core1 and cpu1 is core0).
+
+**initial silu**
+- Master instance has all cores
+- Offline two cores
+- manually set up on in a wfi loop, the other in a direct jump (with other things though)
+
+**More thought on paper**
+http://dl.acm.org/citation.cfm?id=2363188
+emulation for trustzone ARM, and gives some papers discussing the use of Trustzone to have a virtualization like feature. They implemented a trustzone emulator.  
+https://github.com/jowinter/qemu-trustzone/blob/devel/README.IAIK  
+Could not use qemu trustzone, but this link has one which MAY work (not sure though). Try? Might be possible to get a monitor within Trustzone. Hopefully, the kernel I use from linaro has nothing from SMC and may run entirely within the secure world. However, running two OSes at the same time may prove to be difficult anyway (just running a smc operation is not enough); there prototype is only running a micro application.
+
+http://dl.acm.org/citation.cfm?doid=1456455.1456460
+Linux as a secure world OS, merite citation. This is to say that using trustzone as a virtualization tool is not new, and therefore I don't need to spend much time on it?
+
+Maybe, should convert MuxOS into a monitor. This should not cause any problems: I should think hard of the concrete process, but that should be feasible.
+
+And emphasis that we ARE to execute multiple kernels. editing bootloader and whatsnot is not such a big deal.
