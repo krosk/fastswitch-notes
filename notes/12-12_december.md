@@ -469,3 +469,6 @@ Linux as a secure world OS, merite citation. This is to say that using trustzone
 Maybe, should convert MuxOS into a monitor. This should not cause any problems: I should think hard of the concrete process, but that should be feasible.
 
 And emphasis that we ARE to execute multiple kernels. editing bootloader and whatsnot is not such a big deal.
+
+### 27/12
+**interesting statistics** on smartphone, 72% of the OSes are Android.
