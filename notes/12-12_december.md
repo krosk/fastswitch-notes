@@ -376,7 +376,8 @@ Study:
 Prototype availability:
 - First prototype prove that multiple OSes can cooperate on a single device directly on hardware while keeping performance, on ANY ARM consumer electronics; a watered down version of the architecture make it possible, allowing instance management (creation, booting, allocation, memory transfer) and tackle several problems met with proprietary hardware.
 - We may use features implemented within Linux, but they could very possibly another OS. OS switching has proved it possible on x86. Android and WebOS, allowing access to a wider range of programs ?
-- Second prototype goes one step further by providing memory isolation. consumer electronics with specific hardware could support this, but unfortunately, our previous prototype does not allow us to tamper with its secure part, although it has hardware support. We therefore use a emulator with crude but functional Trustzone to support our claim. Due to the small number of devices (peripherals), this also allows us to run two OSes in // without device interference.
+- Second prototype goes one step further by providing memory isolation. consumer electronics with specific hardware could support this, but unfortunately, our previous prototype does not allow us to tamper with its secure part, although it has hardware support. We therefore use a emulator with crude but functional Trustzone to support our claim that such architecture could work with Trustzone enabled hardward.
+- Third prototype is a proof of concept for CPU hotplugging and sharing. Due to the small number of devices (peripherals), this also allows us to run two OSes in // without device interference.
 
 
 
@@ -448,6 +449,13 @@ Two blobs of codes: "bootloader" and "smpboot"
 - Master instance has all cores
 - Offline two cores
 - manually set up on in a wfi loop, the other in a direct jump (with other things though)
+
+**What makes a core halt?**
+cpu_exec in cpu-exec.c in qemu will mark the cpu as halted IF it receives an interrupt CPU_INTERRUPT_HALT.
+So maybe it would be fun to print them?
+In kernel, after some tracing, it goes from cpu_down() straight to cpu_disable() in arch/arm/kernel/smp.c
+
+In the other spectrum, setting one online takes cpu_up() straight to __cpu_up() for arm specific code.
 
 **More thought on paper**
 http://dl.acm.org/citation.cfm?id=2363188
